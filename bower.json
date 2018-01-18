@@ -1,11 +1,11 @@
 {
-  "name": "coin-generator",
-  "main": "coins.js",
-  "homepage": "https://github.com/mouse-reeve/coins",
+  "name": "map-generator",
+  "main": "maps.js",
+  "homepage": "https://github.com/mouse-reeve/maps",
   "authors": [
     "Mouse Reeve <mousereeve@riseup.net>"
   ],
-  "description": "Generates images of coins",
+  "description": "Generates images of maps",
   "keywords": [
     "procedural",
     "generation"
