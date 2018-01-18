@@ -1,4 +1,5 @@
 function setup() {
+
     var container = document.getElementById('map');
     var canvas = createCanvas(640,360);
     canvas.parent(container);
@@ -15,6 +16,13 @@ class Map {
     constructor(seed) {
         this.seed = seed || (new Date).getTime();
         randomSeed(this.seed);
+
+        // I don't know WHAT the deal is with p5 noise()
+        var gen = new SimplexNoise(random);
+        this.get_noise = function (nx, ny) {
+          // Rescale from -1.0:+1.0 to 0.0:1.0
+          return gen.noise2D(nx, ny) / 2 + 0.5;
+        }
         this.grid = [];
     }
 
@@ -43,7 +51,7 @@ class Map {
                 var noise_value = 0;
                 var divisor = 1;
                 for (var i = 1; i <= octaves; i = i * 2) {
-                    noise_value += 1 / i * get_noise(i * nx, i * ny);
+                    noise_value += 1 / i * this.get_noise(i * nx, i * ny);
                     divisor += 1 / i;
                 }
                 noise_value = noise_value / divisor;
@@ -55,9 +63,3 @@ class Map {
     }
 }
 
-// I don't know WHAT the deal is with p5 noise()
-var gen = new SimplexNoise();
-function get_noise(nx, ny) {
-  // Rescale from -1.0:+1.0 to 0.0:1.0
-  return gen.noise2D(nx, ny) / 2 + 0.5;
-}
