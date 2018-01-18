@@ -1,0 +1,24 @@
+{
+  "name": "coin-generator",
+  "main": "coins.js",
+  "homepage": "https://github.com/mouse-reeve/coins",
+  "authors": [
+    "Mouse Reeve <mousereeve@riseup.net>"
+  ],
+  "description": "Generates images of coins",
+  "keywords": [
+    "procedural",
+    "generation"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "p5.js": "p5js#^0.5.13"
+  }
+}
