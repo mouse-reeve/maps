@@ -27,6 +27,7 @@ class Map {
     }
 
     draw_map() {
+        // ----- draw topo map ----- \\
         this.get_topography();
         for (var y = 0; y < height; y++) {
             for (var x = 0; x < width; x++) {
