@@ -19,6 +19,19 @@ class Map {
     }
 
     draw_map() {
+        this.get_topography();
+        for (var y = 0; y < height; y++) {
+            for (var x = 0; x < width; x++) {
+                var value = this.grid[y][x] * 255;
+                // bucketize for topo map
+                var value = value - value % 10;
+                stroke(value);
+                point(x, y);
+            }
+        }
+    }
+
+    get_topography() {
         for (var y = 0; y < height; y++) {
             this.grid[y] = [];
             for (var x = 0; x < width; x++) {
@@ -37,14 +50,12 @@ class Map {
                 noise_value = Math.pow(noise_value, 1.5);
 
                 this.grid[y][x] = noise_value;
-                stroke(noise_value * 255);
-                point(x, y);
             }
         }
-        console.log(this.grid[0][0]);
     }
 }
 
+// I don't know WHAT the deal is with p5 noise()
 var gen = new SimplexNoise();
 function get_noise(nx, ny) {
   // Rescale from -1.0:+1.0 to 0.0:1.0
