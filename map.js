@@ -17,13 +17,14 @@ class Map {
         this.seed = seed || (new Date).getTime();
         randomSeed(this.seed);
 
-        // I don't know WHAT the deal is with p5 noise()
+        // I don't know WHAT the deal is with p5 noise() so we're using this instead
         var gen = new SimplexNoise(random);
         this.get_noise = function (nx, ny) {
           // Rescale from -1.0:+1.0 to 0.0:1.0
           return gen.noise2D(nx, ny) / 2 + 0.5;
         }
-        this.grid = [];
+
+        this.grid = this.create_matrix();
     }
 
     draw_map() {
@@ -31,7 +32,7 @@ class Map {
         this.get_topography();
         for (var y = 0; y < height; y++) {
             for (var x = 0; x < width; x++) {
-                var value = this.grid[y][x] * 255;
+                var value = this.grid[x][y] * 255;
                 // bucketize for topo map
                 var value = value - value % 10;
                 stroke(value);
@@ -42,7 +43,6 @@ class Map {
 
     get_topography() {
         for (var y = 0; y < height; y++) {
-            this.grid[y] = [];
             for (var x = 0; x < width; x++) {
                 var frequency = 2 / width;
                 var nx = x * frequency - 0.5;
@@ -58,9 +58,18 @@ class Map {
                 noise_value = noise_value / divisor;
                 noise_value = Math.pow(noise_value, 1.5);
 
-                this.grid[y][x] = noise_value;
+                this.grid[x][y] = noise_value;
             }
         }
     }
+
+    create_matrix() {
+        var matrix = [];
+        for (var x = 0; x < width; x++) {
+            matrix[x] = new Array(height);
+        }
+        return matrix;
+    }
 }
+
 
