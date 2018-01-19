@@ -1,4 +1,5 @@
 var black;
+var white;
 
 function setup() {
     var container = document.getElementById('map');
@@ -7,6 +8,7 @@ function setup() {
 
     var seed = container.getAttribute('data-seed');
     black = color(0);
+    white = color(255);
 
     var map = new Map(seed);
     map.draw_map();
@@ -27,11 +29,6 @@ class Map {
         }
 
         this.elevation = this.create_matrix();
-
-        this.colors = {
-            water: '#A9DCE0',
-            topo: ['#C1CCA5', '#C1CCA5', '#E6F0BF', '#E9EFB5', '#DAC689', '#CDA37F', '#CB9082', '#C8BEC6', '#D6D5E5'],
-        };
     }
 
     draw_map() {
@@ -40,15 +37,21 @@ class Map {
 
         var color_gap = 5;
         // ----- draw map ------------- \\
+        // topo map
+        var colors = {
+            water: '#A9DCE0',
+            topo: ['#C1CCA5', '#C1CCA5', '#E6F0BF', '#E9EFB5', '#DAC689', '#CDA37F', '#CB9082', '#C8BEC6', '#D6D5E5'],
+        };
+        push();
         for (var y = 0; y < height; y++) {
             for (var x = 0; x < width; x++) {
                 // bucketize for topo map
                 var value = Math.floor(this.elevation[x][y] * 100);
                 var color_bucket = Math.floor(value / color_gap);
-                if (color_bucket >= this.colors.topo.length) {
-                    color_bucket = this.colors.topo.length - 1;
+                if (color_bucket >= colors.topo.length) {
+                    color_bucket = colors.topo.length - 1;
                 }
-                var point_color = this.colors.topo[color_bucket];
+                var point_color = colors.topo[color_bucket];
 
                 var border_value = this.topo_border(x, y);
                 if (!!border_value) {
@@ -61,6 +64,54 @@ class Map {
                 point(x, y);
             }
         }
+        pop()
+
+        // ----- compass rose
+        push();
+        textSize(25);
+        textFont('Georgia');
+        fill(black);
+        text('N', 20, height - 20);
+        beginShape();
+        vertex(22, height - 50);
+        vertex(30, height - 80);
+        vertex(38, height - 50);
+        vertex(30, height - 60);
+        endShape(CLOSE);
+        pop();
+
+
+        // ----- scale
+        push();
+        var r_height = 7;
+        var r_width = 50;
+        var offset = 220;
+
+        stroke(black)
+        textSize(9);
+
+        fill(white);
+        rect(width - offset, height - 20, r_width, r_height);
+        fill(black);
+        text('0 miles', width - offset, height - 25);
+        offset -= 50;
+        text('0.5', width - offset - 5, height - 25);
+
+        fill(black);
+        rect(width - offset, height - 20, r_width, r_height);
+        offset -= 50;
+        text('1.0', width - offset - 5, height - 25);
+
+        fill(white);
+        rect(width - offset, height - 20, r_width, r_height);
+        offset -= 50;
+
+        fill(black);
+        text('1.5', width - offset - 5, height - 25);
+        rect(width - offset, height - 20, r_width, r_height);
+        offset -= 50;
+        text('2.0', width - offset - 5, height - 25);
+        pop();
     }
 
     topo_border(x, y) {
