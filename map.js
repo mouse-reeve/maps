@@ -3,7 +3,7 @@ var white;
 
 function setup() {
     var container = document.getElementById('map');
-    var canvas = createCanvas(640, 360);
+    var canvas = createCanvas(800, 600);
     canvas.parent(container);
 
     var seed = container.getAttribute('data-seed');
@@ -33,7 +33,7 @@ class Map {
 
     draw_map() {
         // ----- compute elements ----- \\
-        this.get_topography();
+        this.get_elevation();
 
         var color_gap = 5;
         // ----- draw map ------------- \\
@@ -130,7 +130,7 @@ class Map {
         return false;
     }
 
-    get_topography() {
+    get_elevation() {
         for (var y = 0; y < height; y++) {
             for (var x = 0; x < width; x++) {
                 // higher number -> "zoom out"
