@@ -1,7 +1,7 @@
 function setup() {
 
     var container = document.getElementById('map');
-    var canvas = createCanvas(640,360);
+    var canvas = createCanvas(640, 360);
     canvas.parent(container);
 
     var seed = container.getAttribute('data-seed');
@@ -24,17 +24,19 @@ class Map {
           return gen.noise2D(nx, ny) / 2 + 0.5;
         }
 
-        this.grid = this.create_matrix();
+        this.elevation = this.create_matrix();
     }
 
     draw_map() {
-        // ----- draw topo map ----- \\
+        // ----- compute elements ----- \\
         this.get_topography();
+
+        // ----- draw map ------------- \\
         for (var y = 0; y < height; y++) {
             for (var x = 0; x < width; x++) {
-                var value = this.grid[x][y] * 255;
+                var value = this.elevation[x][y] * 255;
                 // bucketize for topo map
-                var value = value - value % 10;
+                value = value - value % 10;
                 stroke(value);
                 point(x, y);
             }
@@ -58,7 +60,7 @@ class Map {
                 noise_value = noise_value / divisor;
                 noise_value = Math.pow(noise_value, 1.5);
 
-                this.grid[x][y] = noise_value;
+                this.elevation[x][y] = noise_value;
             }
         }
     }
