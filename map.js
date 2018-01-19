@@ -130,8 +130,25 @@ class Map {
 
     get_coastline() {
         // Pick start and end coords
-        var start = [Math.round(width * random(0.5, 0.7)), height];
-        var end = [width, Math.round(height * random(0, 0.7))];
+        var start = [Math.round(width * random(0.2, 0.7)), height - 1];
+        var low = [start[0], start[1], 1];
+        for (var i = 0; i < 100; i++) {
+            var current_elevation = this.elevation[start[0] + i][height - 1];
+            if (current_elevation < low[2]) {
+                low = [start[0] + i, height - 1, current_elevation];
+            }
+        }
+        start = [low[0], low[1]];
+
+        var end = [width - 1, Math.round(height * random(0.5, 0.7))];
+        low = [end[0], end[1], 1];
+        for (var i = 0; i < 100; i++) {
+            var current_elevation = this.elevation[end[0]][end[1] + i];
+            if (current_elevation < low[2]) {
+                low = [end[0], end[1] + i, current_elevation];
+            }
+        }
+        end = [low[0], low[1]];
 
         // add a displaced midpoint perpendicularly to the line segment
         this.coastline = this.displace_midpoint(0, 1, [start, end]);
@@ -145,37 +162,39 @@ class Map {
         var start = curve[i1];
         var end = curve[i2];
         var segment_length = Math.sqrt(Math.pow(end[0] - start[0], 2) + Math.pow(end[1] - start[1], 2));
-        if (segment_length < 50) {
+        if (segment_length < 10) {
             return curve;
         }
         var midpoint = [Math.round((start[0] + end[0]) / 2),
                         Math.round((start[1] + end[1]) / 2)];
 
         // equation of the perpendicular line is y = mx + b
-        var m = midpoint[1] / midpoint[0];
+        var m = -1 * (start[0] - end[0]) / (start[1] - end[1]);
         // b = y - mx
         var b = midpoint[1] - (m * midpoint[0])
         var x = midpoint[0];
         var y;
 
         var low = [midpoint[0], midpoint[1], this.elevation[midpoint[0]][midpoint[1]]];
-        var direction = random([-1, 1]);
 
-        for (var i = 0; i < (segment_length / 4); i++) {
-            if (x + direction >= width || x + direction < 0) {
-                break;
+        var offset = Math.round(segment_length / 10);
+        for (var i = -0.75 * offset; i < offset; i++) {
+            if (x + i >= width || x + i < 0) {
+                continue;
             }
-            x += direction;
-            y = Math.round((m * x) + b);
-            var elevation = this.elevation[x][y];
+            var nx = Math.floor(x + i);
+            y = Math.round((m * nx) + b);
+            var elevation = this.elevation[nx][y];
             if (elevation < low[2]) {
-                low = [x, y, elevation];
+                low = [nx, y, elevation];
             }
         }
         var displaced = [low[0], low[1]];
 
         if ((displaced[0] == end[0] && displaced[1] == end[1]) || (displaced[0] == start[0] && displaced[1] == start[1])) {
-            return curve;
+            console.log(start, end, displaced, midpoint);
+            console.log('woopsy');
+            displaced = midpoint;
         }
 
         curve.splice(i2, 0, displaced);
