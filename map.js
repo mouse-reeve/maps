@@ -18,8 +18,8 @@ function setup() {
 
 class Map {
     constructor(seed) {
-        this.seed = seed || (new Date).getTime();
-        randomSeed(this.seed);
+        seed = seed || (new Date).getTime();
+        randomSeed(seed);
 
         // I don't know WHAT the deal is with p5 noise() so we're using this instead
         var gen = new SimplexNoise(random);
@@ -29,6 +29,7 @@ class Map {
         }
 
         this.elevation = this.create_matrix();
+        this.water = this.create_matrix();
     }
 
     draw_map() {
@@ -65,53 +66,14 @@ class Map {
             }
         }
         pop()
-
-        // ----- compass rose
         push();
-        textSize(25);
-        textFont('Georgia');
-        fill(black);
-        text('N', 20, height - 20);
-        beginShape();
-        vertex(22, height - 50);
-        vertex(30, height - 80);
-        vertex(38, height - 50);
-        vertex(30, height - 60);
-        endShape(CLOSE);
-        pop();
+        noFill();
+        pop()
+
+        this.compass_rose();
+        this.draw_scale();
 
 
-        // ----- scale
-        push();
-        var r_height = 7;
-        var r_width = 50;
-        var offset = 220;
-
-        stroke(black)
-        textSize(9);
-
-        fill(white);
-        rect(width - offset, height - 20, r_width, r_height);
-        fill(black);
-        text('0 miles', width - offset, height - 25);
-        offset -= 50;
-        text('0.5', width - offset - 5, height - 25);
-
-        fill(black);
-        rect(width - offset, height - 20, r_width, r_height);
-        offset -= 50;
-        text('1.0', width - offset - 5, height - 25);
-
-        fill(white);
-        rect(width - offset, height - 20, r_width, r_height);
-        offset -= 50;
-
-        fill(black);
-        text('1.5', width - offset - 5, height - 25);
-        rect(width - offset, height - 20, r_width, r_height);
-        offset -= 50;
-        text('2.0', width - offset - 5, height - 25);
-        pop();
     }
 
     topo_border(x, y) {
@@ -149,7 +111,7 @@ class Map {
                     divisor += 1 / i;
                 }
                 noise_value = noise_value / divisor; // keeps the value between 0 and 1
-                noise_value = Math.pow(noise_value, 2); // flatens out the lows
+                noise_value = Math.pow(noise_value, 1.5); // flatens out the lows
 
                 this.elevation[x][y] = noise_value;
             }
@@ -162,6 +124,54 @@ class Map {
             matrix[x] = new Array(height);
         }
         return matrix;
+    }
+
+    draw_scale() {
+        push();
+        var r_height = 7;
+        var r_width = 50;
+        var offset = 220;
+
+        stroke(black)
+        textSize(9);
+
+        fill(white);
+        rect(width - offset, height - 20, r_width, r_height);
+        fill(black);
+        text('0 miles', width - offset, height - 25);
+        offset -= 50;
+        text('0.5', width - offset - 5, height - 25);
+
+        fill(black);
+        rect(width - offset, height - 20, r_width, r_height);
+        offset -= 50;
+        text('1.0', width - offset - 5, height - 25);
+
+        fill(white);
+        rect(width - offset, height - 20, r_width, r_height);
+        offset -= 50;
+
+        fill(black);
+        text('1.5', width - offset - 5, height - 25);
+        rect(width - offset, height - 20, r_width, r_height);
+        offset -= 50;
+        text('2.0', width - offset - 5, height - 25);
+        pop();
+    }
+
+    compass_rose() {
+        push();
+        textSize(25);
+        textFont('Georgia');
+        fill(black);
+        text('N', 20, height - 20);
+        beginShape();
+        vertex(22, height - 50);
+        vertex(30, height - 80);
+        vertex(38, height - 50);
+        vertex(30, height - 60);
+        endShape(CLOSE);
+        pop();
     }
 }
 
