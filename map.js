@@ -76,7 +76,7 @@ class Map {
         var path = this.coastline;
         for (var i = 0; i < path.length; i++) {
             fill((255 / path.length) * i);
-            ellipse(path[i][0], path[i][1], 10, 10);
+            ellipse(path[i][0], path[i][1], 5, 5);
         }
         pop()
 
@@ -150,12 +150,14 @@ class Map {
         }
         end = [low[0], low[1]];
 
-        // add a displaced midpoint perpendicularly to the line segment
+        // follow the terrain using displaced midline
         this.coastline = this.displace_midpoint(0, 1, [start, end]);
+        this.coastline.push([width, height]);
 
-        // add new midpoints between the terminals and the new midpoint
-        // recursively subdivide lines
-        // draw water points along this coord path
+        // dig out the ocean by inverting values SE of the coastline
+        // ray casting to determine which points are inside the coastline polygon
+        // I only need to check values to the east of the x coords in the line
+
     }
 
     displace_midpoint(i1, i2, curve) {
@@ -190,12 +192,6 @@ class Map {
             }
         }
         var displaced = [low[0], low[1]];
-
-        if ((displaced[0] == end[0] && displaced[1] == end[1]) || (displaced[0] == start[0] && displaced[1] == start[1])) {
-            console.log(start, end, displaced, midpoint);
-            console.log('woopsy');
-            displaced = midpoint;
-        }
 
         curve.splice(i2, 0, displaced);
         curve = this.displace_midpoint(i2, i2 + 1, curve);
