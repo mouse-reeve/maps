@@ -130,25 +130,11 @@ class Map {
 
     get_coastline() {
         // Pick start and end coords
-        var start = [Math.round(width * random(0.2, 0.7)), height - 1];
-        var low = [start[0], start[1], 1];
-        for (var i = 0; i < 100; i++) {
-            var current_elevation = this.elevation[start[0] + i][height - 1];
-            if (current_elevation < low[2]) {
-                low = [start[0] + i, height - 1, current_elevation];
-            }
-        }
-        start = [low[0], low[1]];
+        var start = [width / 4, height - 1];
+        start = this.find_low(start[0], start[1], 0, width / 2);
 
-        var end = [width - 1, Math.round(height * random(0.5, 0.7))];
-        low = [end[0], end[1], 1];
-        for (var i = 0; i < 100; i++) {
-            var current_elevation = this.elevation[end[0]][end[1] + i];
-            if (current_elevation < low[2]) {
-                low = [end[0], end[1] + i, current_elevation];
-            }
-        }
-        end = [low[0], low[1]];
+        var end = [width - 1, height / 4];
+        end = this.find_low(end[0], end[1], 1, height / 2);
 
         // follow the terrain using displaced midline
         this.coastline = this.displace_midpoint(0, 1, [start, end]);
@@ -158,6 +144,28 @@ class Map {
         // ray casting to determine which points are inside the coastline polygon
         // I only need to check values to the east of the x coords in the line
 
+    }
+
+    find_low(x, y, axis, range) {
+        var low = [[x, y], 1]; // the lowest elevation point found in range
+        var cp = [x, y]; // stores the current point being investigated
+
+        for (var i = 0; i < range; i++) {
+            cp[axis] += 1;
+            if (!this.on_map(...cp)) {
+                break;
+            }
+            var current_elevation = this.elevation[cp[0]][cp[1]];
+            if (current_elevation < low[1]) {
+                low = [[cp[0], cp[1]], current_elevation];
+            }
+        }
+        return low[0];
+    }
+
+    on_map(x, y) {
+        // is the point on the map?
+        return x >= 0 && y >= 0 && x < width && y < height;
     }
 
     displace_midpoint(i1, i2, curve) {
@@ -179,8 +187,8 @@ class Map {
 
         var low = [midpoint[0], midpoint[1], this.elevation[midpoint[0]][midpoint[1]]];
 
-        var offset = Math.round(segment_length / 10);
-        for (var i = -0.75 * offset; i < offset; i++) {
+        var offset = Math.round(segment_length / 5);
+        for (var i = offset * -0.2; i < offset * 0.8; i++) {
             if (x + i >= width || x + i < 0) {
                 continue;
             }
