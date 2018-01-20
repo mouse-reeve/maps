@@ -82,15 +82,13 @@ class Map {
 
         this.compass_rose();
         this.draw_scale();
-
-
     }
 
     topo_border(x, y) {
         var granularity = 50;
         for (var i = 0; i <= 1; i++) {
             for (var j = 0; j <= 1; j++) {
-                if (x + i >= 0 && x + i < width && y + j >= 0 && y + j < height) {
+                if (this.on_map(x + i, y + j)) {
                     var elev1 = Math.floor(this.elevation[x][y] * granularity);
                     var elev2 = Math.floor(this.elevation[x + i][y + j] * granularity);
                     if (elev1 != elev2) {
@@ -130,11 +128,9 @@ class Map {
 
     get_coastline() {
         // Pick start and end coords
-        var start = [width / 4, height - 1];
-        start = this.find_low(start[0], start[1], 0, width / 2);
+        var start = this.find_axis_low(width / 4, height - 1, 0, width / 2);
 
-        var end = [width - 1, height / 4];
-        end = this.find_low(end[0], end[1], 1, height / 2);
+        var end = this.find_axis_low(width - 1, height / 4, 1, height / 2);
 
         // follow the terrain using displaced midline
         this.coastline = this.displace_midpoint(0, 1, [start, end]);
@@ -146,7 +142,7 @@ class Map {
 
     }
 
-    find_low(x, y, axis, range) {
+    find_axis_low(x, y, axis, range) {
         var low = [[x, y], 1]; // the lowest elevation point found in range
         var cp = [x, y]; // stores the current point being investigated
 
@@ -161,11 +157,6 @@ class Map {
             }
         }
         return low[0];
-    }
-
-    on_map(x, y) {
-        // is the point on the map?
-        return x >= 0 && y >= 0 && x < width && y < height;
     }
 
     displace_midpoint(i1, i2, curve) {
@@ -189,11 +180,11 @@ class Map {
 
         var offset = Math.round(segment_length / 5);
         for (var i = offset * -0.2; i < offset * 0.8; i++) {
-            if (x + i >= width || x + i < 0) {
-                continue;
-            }
             var nx = Math.floor(x + i);
             y = Math.round((m * nx) + b);
+            if (!this.on_map(nx, y)) {
+                continue;
+            }
             var elevation = this.elevation[nx][y];
             if (elevation < low[2]) {
                 low = [nx, y, elevation];
@@ -204,6 +195,11 @@ class Map {
         curve.splice(i2, 0, displaced);
         curve = this.displace_midpoint(i2, i2 + 1, curve);
         return this.displace_midpoint(i1, i2, curve);
+    }
+
+    on_map(x, y) {
+        // is the point on the map?
+        return x >= 0 && y >= 0 && x < width && y < height;
     }
 
     create_matrix() {
