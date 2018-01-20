@@ -132,14 +132,35 @@ class Map {
 
         var end = this.find_axis_low(width - 1, height / 4, 1, height / 2);
 
-        // follow the terrain using displaced midline
+        // follow the terrain using displaced midline algorithm
         this.coastline = this.displace_midpoint(0, 1, [start, end]);
         this.coastline.push([width, height]);
+        this.coastline.splice([width, height], 0, 0);
 
         // dig out the ocean by inverting values SE of the coastline
         // ray casting to determine which points are inside the coastline polygon
-        // I only need to check values to the east of the x coords in the line
 
+        // check all points east of each x axis point (excluding the SE corner)
+        for (var i = 0; i < this.coastline.length - 1; i++) {
+            // y is fixed since I'm just looking in x-axis rays
+            var y = this.coastline[i][1];
+            for (var x = this.coastline[i][0]; x < width; x++) {
+                // compare this point to all the edges in the coastline polygon
+                var hits = [];
+                for (var j = 0; j < this.coastline.length - 1; j++) {
+                    // check if the point x, y is on the line defined by this.coastline[j] -> this.coastline[j + 1]
+                    // y = mx + b
+                    var m = (this.coastline[j][0] - this.coastline[j + 1][0]) / (this.coastline[j][1] - this.coastline[j + 1][1]);
+                    var b = this.coastline[j][1] - (m * this.coastline[j][0]);
+                    if (m * x + b == y) {
+                        hits.push(this.coastline[j])
+                    }
+                }
+                if (hits.length % 2 == 1) {
+                    this.water[x][y] = 1;
+                }
+            }
+        }
     }
 
     find_axis_low(x, y, axis, range) {
