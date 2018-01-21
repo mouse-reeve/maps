@@ -48,7 +48,7 @@ class Map {
         for (var y = 0; y < height; y++) {
             for (var x = 0; x < width; x++) {
                 var point_color;
-                if (!!this.water[x][y]) {
+                if (!!this.water[x][y] || this.elevation[x][y] < 0) {
                     point_color = colors.water;
                 } else {
                     // bucketize for topo map
@@ -74,8 +74,8 @@ class Map {
         pop()
         push();
         var path = this.coastline;
+        noFill();
         for (var i = 0; i < path.length; i++) {
-            fill((255 / path.length) * i);
             ellipse(path[i][0], path[i][1], 5, 5);
         }
         pop()
@@ -134,33 +134,57 @@ class Map {
 
         // follow the terrain using displaced midline algorithm
         this.coastline = this.displace_midpoint(0, 1, [start, end]);
-        this.coastline.push([width, height]);
-        this.coastline.splice([width, height], 0, 0);
+        this.coastline.push([width-1, height-1]);
+        this.coastline.splice(0, 0, [width-1, height-1]);
 
-        // dig out the ocean by inverting values SE of the coastline
         // ray casting to determine which points are inside the coastline polygon
-
-        // check all points east of each x axis point (excluding the SE corner)
-        for (var i = 0; i < this.coastline.length - 1; i++) {
-            // y is fixed since I'm just looking in x-axis rays
-            var y = this.coastline[i][1];
-            for (var x = this.coastline[i][0]; x < width; x++) {
-                // compare this point to all the edges in the coastline polygon
+        for (var y = 0; y < height; y++) {
+            for (var x = 0; x < width; x++) {
+                // this starting distance is always higher than the actual possible max
+                var distance = Math.pow(height, 2) + Math.pow(width, 2);
                 var hits = [];
+                // compare this point to all the edges in the coastline polygon
                 for (var j = 0; j < this.coastline.length - 1; j++) {
-                    // check if the point x, y is on the line defined by this.coastline[j] -> this.coastline[j + 1]
-                    // y = mx + b
-                    var m = (this.coastline[j][0] - this.coastline[j + 1][0]) / (this.coastline[j][1] - this.coastline[j + 1][1]);
-                    var b = this.coastline[j][1] - (m * this.coastline[j][0]);
-                    if (m * x + b == y) {
-                        hits.push(this.coastline[j])
+                    // check if the ray from x, y to the border intersects the line defined by this.coastline[j] -> this.coastline[j + 1]
+                    var ccw = this.counterclockwise;
+                    var p1 = [x, y];
+                    var p2 = [width, y];
+                    var p3 = this.coastline[j];
+                    var p4 = this.coastline[j + 1];
+                    var result = ccw(p1, p3, p4) != ccw(p2, p3, p4) && ccw(p1, p2, p3) != ccw(p1, p2, p4);
+
+                    // while we're here, calculate the distance between this
+                    // point and this spot on the coast, so we can change the
+                    // elevation if necessary (closest line segment may not be
+                    // the segment that the ray intersects)
+
+                    var y_diff = p4[1] - p3[1];
+                    var x_diff = p4[0] - p3[0];
+                    var A = -1 * (y_diff)
+                    var B = (x_diff)
+                    var C = -1 * (x_diff) * (p3[1] - ((y_diff / x_diff) * p3[0]));
+                    var h_distance = Math.abs(A * x + B * y + C) / Math.sqrt(A**2 + B**2);
+                    if (h_distance < distance) {
+                        distance = h_distance;
+                    }
+
+                    if (result) {
+                        hits.push([this.coastline[j], this.coastline[j + 1]]);
                     }
                 }
+                // if there are an odd number of hits, then it's inside the ocean polygon
                 if (hits.length % 2 == 1) {
+                    // set the depth of this field relative to the distance
+                    // from the coastine
+                    this.elevation[x][y] -= 0.0005 * distance;
                     this.water[x][y] = 1;
                 }
             }
         }
+    }
+
+    counterclockwise(a, b, c) {
+        return (c[1] - a[1]) * (b[0] - a[0]) > (b[1] - a[1]) * (c[0] - a[0]);
     }
 
     find_axis_low(x, y, axis, range) {
