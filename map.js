@@ -79,19 +79,22 @@ class Map {
             }
         }
         pop()
+
+        /* Handy for debugging the coast algorithms
         push();
-        var path = this.coastline;
         noFill();
-        for (var i = 0; i < path.length; i++) {
-            //ellipse(path[i][0], path[i][1], 5, 5);
+        for (var i = 0; i < this.coastline.length; i++) {
+            ellipse(this.coastline[i][0], this.coastline[i][1], 5, 5);
         }
         pop()
+        */
 
         this.compass_rose();
         this.draw_scale();
     }
 
     topo_border(x, y) {
+        // checks if a point is in a different elevation "bucket" than its SE neighbors
         var granularity = 50;
         for (var i = 0; i <= 1; i++) {
             for (var j = 0; j <= 1; j++) {
@@ -108,6 +111,7 @@ class Map {
     }
 
     get_elevation() {
+        // uses simplex noise to create an elevation matrix
         for (var y = 0; y < height; y++) {
             for (var x = 0; x < width; x++) {
                 // higher number -> "zoom out"
@@ -134,13 +138,15 @@ class Map {
     }
 
     get_coastline() {
-        // Pick start and end coords
-        var start = this.find_axis_low(width / 8, height - 1, 0, 5 * width / 8);
+        // adds an ocean to the SE corner of the map
 
+        var start = this.find_axis_low(width / 8, height - 1, 0, 5 * width / 8);
         var end = this.find_axis_low(width - 1, height / 8, 1, height / 2);
 
         // follow the terrain using displaced midline algorithm
         this.coastline = this.displace_midpoint(0, 1, [start, end]);
+
+        // add the map's SE corner to complete the polygon
         this.coastline.push([width-1, height-1]);
         this.coastline.splice(0, 0, [width-1, height-1]);
 
