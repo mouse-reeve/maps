@@ -28,6 +28,13 @@ class Map {
           return gen.noise2D(nx, ny) / 2 + 0.5;
         }
 
+        // ----- CONTROLS -------------\\
+        this.beach_steepness = 0.005; // increase for steeper beaches
+        this.elevation_range = 1.5; // increase for a smaller elevation range
+        this.elevation_scale = 3; // increase for more variation in elevation across the map
+        this.elevation_noisiness = 3; // increase for less smooth elevation boundaries
+
+        // ----- BUILD MAP ------------\\
         this.elevation = this.create_matrix();
         this.water = this.create_matrix();
     }
@@ -104,13 +111,13 @@ class Map {
         for (var y = 0; y < height; y++) {
             for (var x = 0; x < width; x++) {
                 // higher number -> "zoom out"
-                var frequency = 3 / width;
+                var frequency = this.elevation_scale / width;
 
                 var nx = x * frequency - 0.5;
                 var ny = y * frequency - 0.5;
 
                 // noisiness of edges
-                var octaves = 3;
+                var octaves = this.elevation_noisiness;
 
                 var noise_value = 0;
                 var divisor = 1;
@@ -119,7 +126,7 @@ class Map {
                     divisor += 1 / i;
                 }
                 noise_value = noise_value / divisor; // keeps the value between 0 and 1
-                noise_value = Math.pow(noise_value, 1.5); // flatens out the lows
+                noise_value = Math.pow(noise_value, this.elevation_range); // flatens out the lows
 
                 this.elevation[x][y] = noise_value;
             }
@@ -158,7 +165,7 @@ class Map {
                     // elevation if necessary (closest line segment may not be
                     // the segment that the ray intersects)
 
-                    // don't do this calculation with the final (corner) point)
+                    // don't do this calculation with the final (corner) point
                     // because that's supposed to just be "out to sea"
                     if (j < this.coastline.length - 2) {
                         var h_distance = Math.sqrt(Math.pow(p4[0] - x, 2) + Math.pow(p4[1] - y, 2));
@@ -173,17 +180,19 @@ class Map {
                 if (hits.length % 2 == 1) {
                     // set the depth of this field relative to the distance
                     // from the coastine
-                    this.elevation[x][y] -= 0.005 * distance;
+                    this.elevation[x][y] -= this.beach_steepness * distance;
                 }
             }
         }
     }
 
     counterclockwise(a, b, c) {
+        // utility function for determining if line segments intersect
         return (c[1] - a[1]) * (b[0] - a[0]) > (b[1] - a[1]) * (c[0] - a[0]);
     }
 
     find_axis_low(x, y, axis, range) {
+        // utility function for picking lowpoints on the edges of the map
         var low = [[x, y], 1]; // the lowest elevation point found in range
         var cp = [x, y]; // stores the current point being investigated
 
