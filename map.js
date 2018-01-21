@@ -244,7 +244,7 @@ class Map {
 
         var low = [midpoint[0], midpoint[1], this.elevation[midpoint[0]][midpoint[1]]];
 
-        var offset = Math.round(segment_length / 5);
+        var offset = Math.round(segment_length / offset_denominator);
         for (var i = offset * (0 - offset_balance); i < offset * (1 - offset_balance); i++) {
             var nx = Math.floor(x + i);
             y = Math.round((m * nx) + b);
