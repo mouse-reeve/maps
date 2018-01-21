@@ -76,7 +76,7 @@ class Map {
         var path = this.coastline;
         noFill();
         for (var i = 0; i < path.length; i++) {
-            ellipse(path[i][0], path[i][1], 5, 5);
+            //ellipse(path[i][0], path[i][1], 5, 5);
         }
         pop()
 
@@ -158,14 +158,11 @@ class Map {
                     // elevation if necessary (closest line segment may not be
                     // the segment that the ray intersects)
 
-                    var y_diff = p4[1] - p3[1];
-                    var x_diff = p4[0] - p3[0];
-                    var A = -1 * (y_diff)
-                    var B = (x_diff)
-                    var C = -1 * (x_diff) * (p3[1] - ((y_diff / x_diff) * p3[0]));
-                    var h_distance = Math.abs(A * x + B * y + C) / Math.sqrt(A**2 + B**2);
-                    if (h_distance < distance) {
-                        distance = h_distance;
+                    // don't do this calculation with the final (corner) point)
+                    // because that's supposed to just be "out to sea"
+                    if (j < this.coastline.length - 2) {
+                        var h_distance = Math.sqrt(Math.pow(p4[0] - x, 2) + Math.pow(p4[1] - y, 2));
+                        distance = h_distance < distance ? h_distance : distance;
                     }
 
                     if (result) {
@@ -176,8 +173,7 @@ class Map {
                 if (hits.length % 2 == 1) {
                     // set the depth of this field relative to the distance
                     // from the coastine
-                    this.elevation[x][y] -= 0.0005 * distance;
-                    this.water[x][y] = 1;
+                    this.elevation[x][y] -= 0.005 * distance;
                 }
             }
         }
