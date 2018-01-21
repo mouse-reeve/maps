@@ -128,9 +128,9 @@ class Map {
 
     get_coastline() {
         // Pick start and end coords
-        var start = this.find_axis_low(width / 4, height - 1, 0, width / 2);
+        var start = this.find_axis_low(width / 8, height - 1, 0, 5 * width / 8);
 
-        var end = this.find_axis_low(width - 1, height / 4, 1, height / 2);
+        var end = this.find_axis_low(width - 1, height / 8, 1, height / 2);
 
         // follow the terrain using displaced midline algorithm
         this.coastline = this.displace_midpoint(0, 1, [start, end]);
