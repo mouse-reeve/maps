@@ -144,7 +144,7 @@ class Map {
         var end = this.find_axis_low(width - 1, height / 8, 1, height / 2);
 
         // follow the terrain using displaced midline algorithm
-        this.coastline = this.displace_midpoint(0, 1, [start, end]);
+        this.coastline = this.displace_midpoint([start, end], 5, 0.2);
 
         // add the map's SE corner to complete the polygon
         this.coastline.push([width-1, height-1]);
@@ -215,8 +215,17 @@ class Map {
         return low[0];
     }
 
-    displace_midpoint(i1, i2, curve) {
+    displace_midpoint(curve, offset_denominator, offset_balance, i1, i2) {
         // recursive algorithm to fit a line to the lows on the elevation map
+        // offset_denominator controls how far the midpoint can vary
+        // (higher denom -> less variation)
+        // offset_balance controls whether it prefers to look above or below
+        // the line (useful for coastline); 0.5 is balanced
+        if (!i1 && !i2) {
+            // allow outside functions to call this with just the start/end points
+            i1 = 0;
+            i2 = 1;
+        }
         var start = curve[i1];
         var end = curve[i2];
         var segment_length = Math.sqrt(Math.pow(end[0] - start[0], 2) + Math.pow(end[1] - start[1], 2));
@@ -236,7 +245,7 @@ class Map {
         var low = [midpoint[0], midpoint[1], this.elevation[midpoint[0]][midpoint[1]]];
 
         var offset = Math.round(segment_length / 5);
-        for (var i = offset * -0.2; i < offset * 0.8; i++) {
+        for (var i = offset * (0 - offset_balance); i < offset * (1 - offset_balance); i++) {
             var nx = Math.floor(x + i);
             y = Math.round((m * nx) + b);
             if (!this.on_map(nx, y)) {
@@ -250,8 +259,8 @@ class Map {
         var displaced = [low[0], low[1]];
 
         curve.splice(i2, 0, displaced);
-        curve = this.displace_midpoint(i2, i2 + 1, curve);
-        return this.displace_midpoint(i1, i2, curve);
+        curve = this.displace_midpoint(curve, offset_denominator, offset_balance, i2, i2 + 1);
+        return this.displace_midpoint(curve, offset_denominator, offset_balance, i1, i2);
     }
 
     on_map(x, y) {
