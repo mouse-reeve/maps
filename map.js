@@ -78,7 +78,7 @@ class Map {
                 point(x, y);
             }
         }
-        pop()
+        pop();
 
         /* Handy for debugging the coast algorithms
         push();
@@ -130,7 +130,7 @@ class Map {
                     divisor += 1 / i;
                 }
                 noise_value = noise_value / divisor; // keeps the value between 0 and 1
-                noise_value = Math.pow(noise_value, this.elevation_range); // flatens out the lows
+                noise_value = Math.pow(noise_value, this.elevation_range); // flattens out the lows
 
                 this.elevation[x][y] = noise_value;
             }
@@ -185,7 +185,7 @@ class Map {
                 // if there are an odd number of hits, then it's inside the ocean polygon
                 if (hits.length % 2 == 1) {
                     // set the depth of this field relative to the distance
-                    // from the coastine
+                    // from the coastline
                     this.elevation[x][y] -= this.beach_steepness * distance;
                 }
             }
@@ -275,7 +275,7 @@ class Map {
         var r_width = 50;
         var offset = 220;
 
-        stroke(black)
+        stroke(black);
         textSize(9);
 
         var fill_color = black;
@@ -311,5 +311,4 @@ class Map {
         pop();
     }
 }
-
 
