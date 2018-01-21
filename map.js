@@ -216,6 +216,7 @@ class Map {
     }
 
     displace_midpoint(i1, i2, curve) {
+        // recursive algorithm to fit a line to the lows on the elevation map
         var start = curve[i1];
         var end = curve[i2];
         var segment_length = Math.sqrt(Math.pow(end[0] - start[0], 2) + Math.pow(end[1] - start[1], 2));
@@ -259,6 +260,7 @@ class Map {
     }
 
     create_matrix() {
+        // produces a map-sized matrix
         var matrix = [];
         for (var x = 0; x < width; x++) {
             matrix[x] = new Array(height);
@@ -267,6 +269,7 @@ class Map {
     }
 
     draw_scale() {
+        // draws the black and white scale indicator at the bottom of the map
         push();
         var r_height = 7;
         var r_width = 50;
@@ -275,31 +278,25 @@ class Map {
         stroke(black)
         textSize(9);
 
-        fill(white);
-        rect(width - offset, height - 20, r_width, r_height);
-        fill(black);
+        var fill_color = black;
         text('0 miles', width - offset, height - 25);
-        offset -= 50;
-        text('0.5', width - offset - 5, height - 25);
+        for (var i = 0; i < 4; i++) {
+            fill_color = fill_color == white ? black : white;
+            fill(fill_color);
+            rect(width - offset, height - 20, r_width, r_height);
+            offset -= 50;
 
-        fill(black);
-        rect(width - offset, height - 20, r_width, r_height);
-        offset -= 50;
-        text('1.0', width - offset - 5, height - 25);
-
-        fill(white);
-        rect(width - offset, height - 20, r_width, r_height);
-        offset -= 50;
-
-        fill(black);
-        text('1.5', width - offset - 5, height - 25);
-        rect(width - offset, height - 20, r_width, r_height);
-        offset -= 50;
-        text('2.0', width - offset - 5, height - 25);
+            fill(black);
+            var dist = (0.5 * (i + 1)).toString();
+            // "2" -> "2.0"
+            dist = (dist).replace(/^((?!0)\d)+(?!\.(?!\d))$/, '$1.0');
+            text(dist, width - offset - 5, height - 25);
+        }
         pop();
     }
 
     compass_rose() {
+        // draws a simple compass rose
         push();
         textSize(25);
         textFont('Georgia');
