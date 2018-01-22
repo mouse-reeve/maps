@@ -149,12 +149,21 @@ class Map {
 
     get_river() {
         // adds a river that runs from the NW corner
-        var segment_length = 50;
-        var start = this.find_axis_low(0, 0, 1, height - 1);
+
+        // gradiate the map
+        for (var x = 0; x < width; x++) {
+            for (var y = 0; y < height; y++) {
+                this.elevation[x][y] += ((height - y) + (width - x)) / (3 * (height + width));
+            }
+        }
+
+        // calculate river path
+        var segment_length = 40;
+        var start = [0, 0];
         this.river = [start, [start[0] + 1, start[1]]];
         // look ahead for the lowest point on a radius
         var i = 1;
-        var max_points = 430;
+        var max_points = 200;
         while (i < max_points) {
             // define a 2PI/3 degree arc from the previous point
             var vision_range = TWO_PI / 3;
@@ -166,12 +175,25 @@ class Map {
             for (var a = start_angle; a < start_angle + vision_range; a += PI / 20) {
                 var sx = Math.round(this.river[i][0] + (segment_length * cos(a)));
                 var sy = Math.round(this.river[i][1] + (segment_length * sin(a)));
+
+                // these look 3x further ahead to check for intersection
+                var ix = Math.round(this.river[i][0] + (3 * segment_length * cos(a)));
+                var iy = Math.round(this.river[i][1] + (3 * segment_length * sin(a)));
                 if (this.on_map(sx, sy) && i==max_points-1) {
                     this.river.push([sx, sy]);
                 }
                 if (this.on_map(sx, sy) && this.elevation[sx][sy] < lowest[1]) {
                     // check for self-intersection
-                    lowest = [[sx, sy], this.elevation[sx][sy]];;
+                    var intersecting = false;
+                    for (var r = 0; r < this.river.length - 2; r++) {
+                        if (this.segment_intersection(this.river[i], [ix, iy], this.river[r], this.river[r + 1])) {
+                            intersecting = true;
+                            break;
+                        }
+                    }
+                    if (!intersecting) {
+                        lowest = [[sx, sy], this.elevation[sx][sy]];;
+                    }
                 }
             }
             if (lowest[0].length == 0) {
@@ -180,6 +202,14 @@ class Map {
             this.river.push(lowest[0]);
             i++;
         }
+
+        // ungradiate the map
+        for (var x = 0; x < width; x++) {
+            for (var y = 0; y < height; y++) {
+                this.elevation[x][y] -= ((height - y) + (width - x)) / (3 * (height + width));
+            }
+        }
+
 
     }
 
