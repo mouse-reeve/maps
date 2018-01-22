@@ -170,7 +170,7 @@ class Map {
                     this.river.push([sx, sy]);
                 }
                 if (this.on_map(sx, sy) && this.elevation[sx][sy] < lowest[1]) {
-                    // TODO: check for self-intersection
+                    // check for self-intersection
                     lowest = [[sx, sy], this.elevation[sx][sy]];;
                 }
             }
@@ -205,12 +205,9 @@ class Map {
                 // compare this point to all the edges in the coastline polygon
                 for (var j = 0; j < this.coastline.length - 1; j++) {
                     // check if the ray from x, y to the border intersects the line defined by this.coastline[j] -> this.coastline[j + 1]
-                    var ccw = this.counterclockwise;
-                    var p1 = [x, y];
-                    var p2 = [width, y];
-                    var p3 = this.coastline[j];
-                    var p4 = this.coastline[j + 1];
-                    var result = ccw(p1, p3, p4) != ccw(p2, p3, p4) && ccw(p1, p2, p3) != ccw(p1, p2, p4);
+                    var result = this.segment_intersection(
+                        [x, y], [width, y],
+                        this.coastline[j], this.coastline[j + 1]);
 
                     // while we're here, calculate the distance between this
                     // point and this spot on the coast, so we can change the
@@ -220,7 +217,7 @@ class Map {
                     // don't do this calculation with the final (corner) point
                     // because that's supposed to just be "out to sea"
                     if (j < this.coastline.length - 2) {
-                        var h_distance = Math.sqrt(Math.pow(p4[0] - x, 2) + Math.pow(p4[1] - y, 2));
+                        var h_distance = Math.sqrt(Math.pow(this.coastline[j + 1][0] - x, 2) + Math.pow(this.coastline[j + 1][1] - y, 2));
                         distance = h_distance < distance ? h_distance : distance;
                     }
 
@@ -236,6 +233,12 @@ class Map {
                 }
             }
         }
+    }
+
+    segment_intersection(p1, p2, p3, p4) {
+        // check if two line segments intersect
+        var ccw = this.counterclockwise;
+        return ccw(p1, p3, p4) != ccw(p2, p3, p4) && ccw(p1, p2, p3) != ccw(p1, p2, p4);
     }
 
     counterclockwise(a, b, c) {
