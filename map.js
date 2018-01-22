@@ -37,12 +37,15 @@ class Map {
         // ----- BUILD MAP ------------\\
         this.elevation = this.create_matrix();
         this.water = this.create_matrix();
+        this.coastline = [];
+        this.river = []
     }
 
     draw_map() {
         // ----- compute elements ----- \\
         this.get_elevation();
         this.get_coastline();
+        this.get_river();
 
         var color_gap = 5;
         // ----- draw map ------------- \\
@@ -88,6 +91,13 @@ class Map {
         }
         pop()
         */
+
+        push();
+        for (var i = 0; i < this.river.length; i++) {
+            fill((i/this.river.length) * 255);
+            ellipse(this.river[i][0], this.river[i][1], 10, 10);
+        }
+        pop()
 
         this.compass_rose();
         this.draw_scale();
@@ -135,6 +145,42 @@ class Map {
                 this.elevation[x][y] = noise_value;
             }
         }
+    }
+
+    get_river() {
+        // adds a river that runs from the NW corner
+        var segment_length = 50;
+        var start = this.find_axis_low(0, 0, 1, height - 1);
+        this.river = [start, [start[0] + 1, start[1]]];
+        // look ahead for the lowest point on a radius
+        var i = 1;
+        var max_points = 430;
+        while (i < max_points) {
+            // define a 2PI/3 degree arc from the previous point
+            var vision_range = TWO_PI / 3;
+            var start_angle = PI + atan2((this.river[i][1] - this.river[i - 1][1]), (this.river[i][0] - this.river[i - 1][0])) + vision_range;
+
+            var lowest = [[], 2];
+
+
+            for (var a = start_angle; a < start_angle + vision_range; a += PI / 20) {
+                var sx = Math.round(this.river[i][0] + (segment_length * cos(a)));
+                var sy = Math.round(this.river[i][1] + (segment_length * sin(a)));
+                if (this.on_map(sx, sy) && i==max_points-1) {
+                    this.river.push([sx, sy]);
+                }
+                if (this.on_map(sx, sy) && this.elevation[sx][sy] < lowest[1]) {
+                    // TODO: check for self-intersection
+                    lowest = [[sx, sy], this.elevation[sx][sy]];;
+                }
+            }
+            if (lowest[0].length == 0) {
+                break;
+            }
+            this.river.push(lowest[0]);
+            i++;
+        }
+
     }
 
     get_coastline() {
