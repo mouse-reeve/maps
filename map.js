@@ -43,9 +43,9 @@ class Map {
 
     draw_map() {
         // ----- compute elements ----- \\
-        this.get_elevation();
-        this.get_coastline();
-        this.get_river();
+        this.add_elevation();
+        this.add_ocean();
+        this.add_river();
 
         var color_gap = 5;
         // ----- draw map ------------- \\
@@ -58,11 +58,11 @@ class Map {
         for (var y = 0; y < height; y++) {
             for (var x = 0; x < width; x++) {
                 var point_color;
-                if (!!this.water[x][y] || this.elevation[x][y] < 0) {
+                if (!!this.water[x][y] || this.get_elevation(x, y) < 0) {
                     point_color = colors.water;
                 } else {
                     // bucketize for topo map
-                    var value = Math.floor(this.elevation[x][y] * 100);
+                    var value = Math.floor(this.get_elevation(x, y) * 100);
                     var color_bucket = Math.floor(value / color_gap);
                     if (color_bucket >= colors.topo.length) {
                         color_bucket = colors.topo.length - 1;
@@ -98,8 +98,8 @@ class Map {
             fill((i/this.river.length) * 255);
             ellipse(this.river[i][0], this.river[i][1], 10, 10);
         }
-        pop()
         */
+        pop()
 
         this.compass_rose();
         this.draw_scale();
@@ -111,10 +111,10 @@ class Map {
         for (var i = 0; i <= 1; i++) {
             for (var j = 0; j <= 1; j++) {
                 if (this.on_map(x + i, y + j)) {
-                    var elev1 = Math.floor(this.elevation[x][y] * granularity);
-                    var elev2 = Math.floor(this.elevation[x + i][y + j] * granularity);
+                    var elev1 = Math.floor(this.get_elevation(x, y) * granularity);
+                    var elev2 = Math.floor(this.get_elevation(x + i, y + j) * granularity);
                     if (elev1 != elev2) {
-                        return [this.elevation[x][y], this.elevation[x + i][y + j]];
+                        return [this.get_elevation(x, y), this.get_elevation(x + i, y + j)];
                     }
                 }
             }
@@ -122,7 +122,7 @@ class Map {
         return false;
     }
 
-    get_elevation() {
+    add_elevation() {
         // uses simplex noise to create an elevation matrix
         for (var y = 0; y < height; y++) {
             for (var x = 0; x < width; x++) {
@@ -149,7 +149,12 @@ class Map {
         }
     }
 
-    get_river() {
+    get_elevation(x, y) {
+        return this.elevation[x][y];
+    }
+
+
+    add_river() {
         // adds a river that runs from the NW corner
         var segment_length = 50;
         var start = this.find_axis_low(0, 0, 1, height / 2);
@@ -158,6 +163,10 @@ class Map {
         var i = 1;
         var max_points = 200;
         var success = false;
+
+        // use graded elevation
+        this.real_elevation = this.get_elevation;
+        this.get_elevation = this.graded_elevation;
         while (i < max_points) {
             // define a 2PI/3 degree arc from the previous point
             var vision_range = TWO_PI / 3;
@@ -174,7 +183,7 @@ class Map {
                 if (this.on_map(sx, sy) && i==max_points-1) {
                     this.river.push([sx, sy]);
                 }
-                if (this.on_map(sx, sy) && this.graded_elevation(sx, sy) < lowest[1]) {
+                if (this.on_map(sx, sy) && this.get_elevation(sx, sy) < lowest[1]) {
                     // check for self-intersection
                     var intersecting = false;
                     for (var r = 0; r < this.river.length - 2; r++) {
@@ -184,7 +193,7 @@ class Map {
                         }
                     }
                     if (!intersecting) {
-                        lowest = [[sx, sy], this.graded_elevation(sx, sy)];
+                        lowest = [[sx, sy], this.get_elevation(sx, sy)];
                     }
                 }
             }
@@ -194,15 +203,19 @@ class Map {
             this.river.push(lowest[0]);
 
             // stop if the river hits the ocean
-            if (this.elevation[lowest[0][0]][lowest[0][1]] < 0 ||
-                    sx > width - (segment_length * 0.7) ||
-                    sy > height - (segment_length * 0.7) ||
-                    (sy < segment_length * 0.7 && i > 15)) {
+            if (this.get_elevation(lowest[0][0], lowest[0][1]) < 0 ||
+                    sx > width - (segment_length * 0.3) ||
+                    sy > height - (segment_length * 0.3) ||
+                    (sy < segment_length * 0.3 && i > 15)) {
                 success = true;
+                // make sure the river hits the end of the map
+                this.river.push([sx + segment_length, sy + segment_length]);
                 break;
             }
             i++;
         }
+        this.get_elevation = this.real_elevation;
+
         if (!success) {
             return;
         }
@@ -238,7 +251,7 @@ class Map {
         return this.elevation[x][y] + ((height - y) + (width - x)) / (height + width);
     }
 
-    get_coastline() {
+    add_ocean() {
         // adds an ocean to the SE corner of the map
 
         var start = this.find_axis_low(width / 8, height - 1, 0, 5 * width / 8);
@@ -311,7 +324,7 @@ class Map {
             if (!this.on_map(...cp)) {
                 break;
             }
-            var current_elevation = this.elevation[cp[0]][cp[1]];
+            var current_elevation = this.get_elevation(cp[0], cp[1]);
             if (current_elevation < low[1]) {
                 low = [[cp[0], cp[1]], current_elevation];
             }
@@ -346,7 +359,7 @@ class Map {
         var x = midpoint[0];
         var y;
 
-        var low = [midpoint[0], midpoint[1], this.elevation[midpoint[0]][midpoint[1]]];
+        var low = [midpoint[0], midpoint[1], this.get_elevation(midpoint[0], midpoint[1])];
 
         var offset = Math.round(segment_length / offset_denominator);
         for (var i = offset * (0 - offset_balance); i < offset * (1 - offset_balance); i++) {
@@ -355,7 +368,7 @@ class Map {
             if (!this.on_map(nx, y)) {
                 continue;
             }
-            var elevation = this.elevation[nx][y];
+            var elevation = this.get_elevation(nx, y);
             if (elevation < low[2]) {
                 low = [nx, y, elevation];
             }
