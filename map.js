@@ -153,7 +153,7 @@ class Map {
         // gradiate the map
         for (var x = 0; x < width; x++) {
             for (var y = 0; y < height; y++) {
-                this.elevation[x][y] += ((height - y) + (width - x)) / (3 * (height + width));
+                this.elevation[x][y] += ((height - y) + (width - x)) / (height + width);
             }
         }
 
@@ -206,7 +206,7 @@ class Map {
         // ungradiate the map
         for (var x = 0; x < width; x++) {
             for (var y = 0; y < height; y++) {
-                this.elevation[x][y] -= ((height - y) + (width - x)) / (3 * (height + width));
+                this.elevation[x][y] -= ((height - y) + (width - x)) / (height + width);
             }
         }
 
