@@ -28,17 +28,17 @@ class Map {
           return gen.noise2D(nx, ny) / 2 + 0.5;
         }
 
-        // ----- CONTROLS -------------\\
+        // ----- Controls -------------\\
         this.beach_steepness = 0.005; // increase for steeper beaches
         this.elevation_range = 1.5; // increase for a smaller elevation range
         this.elevation_scale = 3; // increase for more variation in elevation across the map
         this.elevation_noisiness = 3; // increase for less smooth elevation boundaries
 
-        // ----- BUILD MAP ------------\\
+        // ----- Map components ------------\\
         this.elevation = this.create_matrix();
         this.water = this.create_matrix();
         this.coastline = [];
-        this.river = []
+        this.river = [];
     }
 
     draw_map() {
@@ -92,12 +92,14 @@ class Map {
         pop()
         */
 
+        /* for debugging rivers
         push();
         for (var i = 0; i < this.river.length; i++) {
             fill((i/this.river.length) * 255);
             ellipse(this.river[i][0], this.river[i][1], 10, 10);
         }
         pop()
+        */
 
         this.compass_rose();
         this.draw_scale();
@@ -149,22 +151,19 @@ class Map {
 
     get_river() {
         // adds a river that runs from the NW corner
-
-        // calculate river path
-        var segment_length = 40;
-        var start = [0, 0];
+        var segment_length = 50;
+        var start = this.find_axis_low(0, 0, 1, height / 2);
         this.river = [start, [start[0] + 1, start[1]]];
         // look ahead for the lowest point on a radius
         var i = 1;
         var max_points = 200;
+        var success = false;
         while (i < max_points) {
             // define a 2PI/3 degree arc from the previous point
             var vision_range = TWO_PI / 3;
             var start_angle = PI + atan2((this.river[i][1] - this.river[i - 1][1]), (this.river[i][0] - this.river[i - 1][0])) + vision_range;
 
             var lowest = [[], 2];
-
-
             for (var a = start_angle; a < start_angle + vision_range; a += PI / 20) {
                 var sx = Math.round(this.river[i][0] + (segment_length * cos(a)));
                 var sy = Math.round(this.river[i][1] + (segment_length * sin(a)));
@@ -193,7 +192,43 @@ class Map {
                 break;
             }
             this.river.push(lowest[0]);
+
+            // stop if the river hits the ocean
+            if (this.elevation[lowest[0][0]][lowest[0][1]] < 0 ||
+                    sx > width - (segment_length * 0.7) ||
+                    sy > height - (segment_length * 0.7) ||
+                    (sy < segment_length * 0.7 && i > 15)) {
+                success = true;
+                break;
+            }
             i++;
+        }
+        if (!success) {
+            return;
+        }
+
+        // place points between the current path
+        var river_detail = [];
+        for (var r = 0; r < this.river.length - 1; r++) {
+            var segment = [this.river[r], this.river[r + 1]];
+            river_detail = river_detail.concat(this.displace_midpoint(segment, 5, 0.5, 5));
+        }
+        this.river = river_detail;
+
+        // dig out the riverbed
+        for (var y = 0; y < height; y++) {
+            for (var x = 0; x < width; x++) {
+                // this starting distance is higher than the actual possible max
+                var distance = Math.pow(height, 2) + Math.pow(width, 2);
+                // check how far this point is from any river segment
+                for (var j = 0; j < this.river.length; j++) {
+                    var h_distance = Math.sqrt(Math.pow(this.river[j][0] - x, 2) + Math.pow(this.river[j][1] - y, 2));
+                    distance = h_distance < distance ? h_distance : distance;
+                }
+                if (distance < 40) {
+                    this.elevation[x][y] -= 2 / (distance ** 1.5);
+                }
+            }
         }
     }
 
@@ -210,7 +245,7 @@ class Map {
         var end = this.find_axis_low(width - 1, height / 8, 1, height / 2);
 
         // follow the terrain using displaced midline algorithm
-        this.coastline = this.displace_midpoint([start, end], 5, 0.2);
+        this.coastline = this.displace_midpoint([start, end], 5, 0.2, 10);
 
         // add the map's SE corner to complete the polygon
         this.coastline.push([width-1, height-1]);
@@ -284,7 +319,7 @@ class Map {
         return low[0];
     }
 
-    displace_midpoint(curve, offset_denominator, offset_balance, i1, i2) {
+    displace_midpoint(curve, offset_denominator, offset_balance, min_segment_length, i1, i2) {
         // recursive algorithm to fit a line to the lows on the elevation map
         // offset_denominator controls how far the midpoint can vary
         // (higher denom -> less variation)
@@ -298,7 +333,7 @@ class Map {
         var start = curve[i1];
         var end = curve[i2];
         var segment_length = Math.sqrt(Math.pow(end[0] - start[0], 2) + Math.pow(end[1] - start[1], 2));
-        if (segment_length < 10) {
+        if (segment_length < min_segment_length) {
             return curve;
         }
         var midpoint = [Math.round((start[0] + end[0]) / 2),
@@ -328,8 +363,8 @@ class Map {
         var displaced = [low[0], low[1]];
 
         curve.splice(i2, 0, displaced);
-        curve = this.displace_midpoint(curve, offset_denominator, offset_balance, i2, i2 + 1);
-        return this.displace_midpoint(curve, offset_denominator, offset_balance, i1, i2);
+        curve = this.displace_midpoint(curve, offset_denominator, offset_balance, min_segment_length, i2, i2 + 1);
+        return this.displace_midpoint(curve, offset_denominator, offset_balance, min_segment_length, i1, i2);
     }
 
     on_map(x, y) {
