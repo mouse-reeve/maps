@@ -150,13 +150,6 @@ class Map {
     get_river() {
         // adds a river that runs from the NW corner
 
-        // gradiate the map
-        for (var x = 0; x < width; x++) {
-            for (var y = 0; y < height; y++) {
-                this.elevation[x][y] += ((height - y) + (width - x)) / (height + width);
-            }
-        }
-
         // calculate river path
         var segment_length = 40;
         var start = [0, 0];
@@ -182,7 +175,7 @@ class Map {
                 if (this.on_map(sx, sy) && i==max_points-1) {
                     this.river.push([sx, sy]);
                 }
-                if (this.on_map(sx, sy) && this.elevation[sx][sy] < lowest[1]) {
+                if (this.on_map(sx, sy) && this.graded_elevation(sx, sy) < lowest[1]) {
                     // check for self-intersection
                     var intersecting = false;
                     for (var r = 0; r < this.river.length - 2; r++) {
@@ -192,7 +185,7 @@ class Map {
                         }
                     }
                     if (!intersecting) {
-                        lowest = [[sx, sy], this.elevation[sx][sy]];;
+                        lowest = [[sx, sy], this.graded_elevation(sx, sy)];
                     }
                 }
             }
@@ -202,15 +195,12 @@ class Map {
             this.river.push(lowest[0]);
             i++;
         }
+    }
 
-        // ungradiate the map
-        for (var x = 0; x < width; x++) {
-            for (var y = 0; y < height; y++) {
-                this.elevation[x][y] -= ((height - y) + (width - x)) / (height + width);
-            }
-        }
-
-
+    graded_elevation(x, y) {
+        // finds the elevation at a point with a gradiant applied so that the
+        // NW corner is the highest
+        return this.elevation[x][y] + ((height - y) + (width - x)) / (height + width);
     }
 
     get_coastline() {
