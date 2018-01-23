@@ -36,7 +36,6 @@ class Map {
 
         // ----- Map components ------------\\
         this.elevation = this.create_matrix();
-        this.water = this.create_matrix();
         this.coastline = [];
         this.river = [];
     }
@@ -58,7 +57,7 @@ class Map {
         for (var y = 0; y < height; y++) {
             for (var x = 0; x < width; x++) {
                 var point_color;
-                if (!!this.water[x][y] || this.get_elevation(x, y) < 0) {
+                if (this.get_elevation(x, y) < 0) {
                     point_color = colors.water;
                 } else {
                     // bucketize for topo map
@@ -150,42 +149,41 @@ class Map {
     }
 
     get_elevation(x, y) {
+        // making this a function so that it can be swapped out or used
+        // with elevation modifiers
         return this.elevation[x][y];
     }
-
 
     add_river() {
         // adds a river that runs from the NW corner
         var segment_length = 50;
         var start = this.find_axis_low(0, 0, 1, height / 2);
         this.river = [start, [start[0] + 1, start[1]]];
-        // look ahead for the lowest point on a radius
-        var i = 1;
-        var max_points = 200;
-        var success = false;
 
         // use graded elevation
         this.real_elevation = this.get_elevation;
         this.get_elevation = this.graded_elevation;
+
+        var success = false;
+        var i = 1;
+        var max_points = 200;
         while (i < max_points) {
-            // define a 2PI/3 degree arc from the previous point
+            // define a 2PI/3 degree arc "line of sight" from the previous point
             var vision_range = TWO_PI / 3;
             var start_angle = PI + atan2((this.river[i][1] - this.river[i - 1][1]), (this.river[i][0] - this.river[i - 1][0])) + vision_range;
 
             var lowest = [[], 2];
+            // evaluate every point on the arc for the lowest elevation
             for (var a = start_angle; a < start_angle + vision_range; a += PI / 20) {
                 var sx = Math.round(this.river[i][0] + (segment_length * cos(a)));
                 var sy = Math.round(this.river[i][1] + (segment_length * sin(a)));
 
-                // these look 3x further ahead to check for intersection
-                var ix = Math.round(this.river[i][0] + (3 * segment_length * cos(a)));
-                var iy = Math.round(this.river[i][1] + (3 * segment_length * sin(a)));
-                if (this.on_map(sx, sy) && i==max_points-1) {
-                    this.river.push([sx, sy]);
-                }
                 if (this.on_map(sx, sy) && this.get_elevation(sx, sy) < lowest[1]) {
                     // check for self-intersection
                     var intersecting = false;
+                    // these look 3x further ahead to check for intersection
+                    var ix = Math.round(this.river[i][0] + (3 * segment_length * cos(a)));
+                    var iy = Math.round(this.river[i][1] + (3 * segment_length * sin(a)));
                     for (var r = 0; r < this.river.length - 2; r++) {
                         if (this.segment_intersection(this.river[i], [ix, iy], this.river[r], this.river[r + 1])) {
                             intersecting = true;
@@ -197,12 +195,13 @@ class Map {
                     }
                 }
             }
+            // the river has failed, there will be no river
             if (lowest[0].length == 0) {
                 break;
             }
             this.river.push(lowest[0]);
 
-            // stop if the river hits the ocean
+            // stop if the river hits the ocean or the edge of the map
             if (this.get_elevation(lowest[0][0], lowest[0][1]) < 0 ||
                     sx > width - (segment_length * 0.3) ||
                     sy > height - (segment_length * 0.3) ||
@@ -253,7 +252,6 @@ class Map {
 
     add_ocean() {
         // adds an ocean to the SE corner of the map
-
         var start = this.find_axis_low(width / 8, height - 1, 0, 5 * width / 8);
         var end = this.find_axis_low(width - 1, height / 8, 1, height / 2);
 
@@ -354,7 +352,6 @@ class Map {
 
         // equation of the perpendicular line is y = mx + b
         var m = -1 * (start[0] - end[0]) / (start[1] - end[1]);
-        // b = y - mx
         var b = midpoint[1] - (m * midpoint[0])
         var x = midpoint[0];
         var y;
