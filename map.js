@@ -6,7 +6,10 @@ function setup() {
     var canvas = createCanvas(800, 600);
     canvas.parent(container);
 
-    var seed = container.getAttribute('data-seed');
+    //var seed = container.getAttribute('data-seed');
+    var seed = Math.floor(Math.random() * 10000);
+    console.log(seed);
+
     black = color(0);
     white = color(255);
 
@@ -151,7 +154,9 @@ class Map {
     get_elevation(x, y) {
         // making this a function so that it can be swapped out or used
         // with elevation modifiers
-        return this.elevation[x][y];
+        if (this.on_map(x, y)) {
+            return this.elevation[x][y];
+        }
     }
 
     add_river() {
