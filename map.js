@@ -242,7 +242,7 @@ class Map {
                     var h_distance = Math.sqrt(Math.pow(this.river[j][0] - x, 2) + Math.pow(this.river[j][1] - y, 2));
                     distance = h_distance < distance ? h_distance : distance;
                 }
-                if (distance < 40) {
+                if (distance < 100) {
                     this.elevation[x][y] -= 2 / (distance ** 1.5);
                 }
             }
