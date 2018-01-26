@@ -32,7 +32,6 @@ class Map {
         }
 
         // ----- Controls -------------\\
-        this.beach_steepness = 0.005; // increase for steeper beaches
         this.elevation_range = 1.5; // increase for a smaller elevation range
         this.elevation_scale = 3; // increase for more variation in elevation across the map
         this.elevation_noisiness = 3; // increase for less smooth elevation boundaries
@@ -300,7 +299,7 @@ class Map {
                 if (hits.length % 2 == 1) {
                     // set the depth of this field relative to the distance
                     // from the coastline
-                    this.elevation[x][y] -= this.beach_steepness * distance;
+                    this.elevation[x][y] -= (distance ** 1.2) / 500;
                 }
             }
         }
