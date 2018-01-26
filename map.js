@@ -364,7 +364,7 @@ class Map {
 
         var offset = Math.round(segment_length / offset_denominator);
         for (var i = offset * (0 - offset_balance); i < offset * (1 - offset_balance); i++) {
-            var nx = Math.floor(x + i);
+            var nx = Math.round(x + (i / Math.abs(i)) * Math.sqrt(i ** 2 / (1 + m ** 2)));
             y = Math.round((m * nx) + b);
             if (!this.on_map(nx, y)) {
                 continue;
