@@ -256,8 +256,8 @@ class Map {
 
     add_ocean() {
         // adds an ocean to the SE corner of the map
-        var start = this.find_axis_low(width / 8, height - 1, 0, 5 * width / 8);
-        var end = this.find_axis_low(width - 1, height / 8, 1, height / 2);
+        var start = this.find_axis_low(width / 16, height - 1, 0, 5 * width / 8);
+        var end = this.find_axis_low(width - 1, height / 16, 1, height / 2);
 
         // follow the terrain using displaced midline algorithm
         this.coastline = this.displace_midpoint([start, end], 5, 0.2, 10);
@@ -299,7 +299,7 @@ class Map {
                 if (hits.length % 2 == 1) {
                     // set the depth of this field relative to the distance
                     // from the coastline
-                    this.elevation[x][y] -= (distance ** 1.2) / 500;
+                    this.elevation[x][y] -= (distance ** 2) / 50000;
                 }
             }
         }
