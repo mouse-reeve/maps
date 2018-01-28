@@ -99,8 +99,8 @@ class Map {
             fill((i/this.river.length) * 255);
             ellipse(this.river[i][0], this.river[i][1], 10, 10);
         }
-        */
         pop()
+        */
 
         this.compass_rose();
         this.draw_scale();
