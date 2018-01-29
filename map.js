@@ -3,7 +3,7 @@ var white;
 
 function setup() {
     var container = document.getElementById('map');
-    var canvas = createCanvas(800, 600);
+    var canvas = createCanvas(1165, 600);
     canvas.parent(container);
 
     //var seed = container.getAttribute('data-seed');
@@ -153,6 +153,8 @@ class Map {
     get_elevation(x, y) {
         // making this a function so that it can be swapped out or used
         // with elevation modifiers
+        x = Math.round(x);
+        y = Math.round(y);
         if (this.on_map(x, y)) {
             return this.elevation[x][y];
         }
@@ -176,7 +178,7 @@ class Map {
             var vision_range = TWO_PI / 3;
             var start_angle = PI + atan2((this.river[i][1] - this.river[i - 1][1]), (this.river[i][0] - this.river[i - 1][0])) + vision_range;
 
-            var lowest = [[], 2];
+            var lowest = [[], height * width];
             // evaluate every point on the arc for the lowest elevation
             for (var a = start_angle; a < start_angle + vision_range; a += PI / 20) {
                 var sx = Math.round(this.river[i][0] + (segment_length * cos(a)));
@@ -242,7 +244,7 @@ class Map {
                     distance = h_distance < distance ? h_distance : distance;
                 }
                 if (distance < 100) {
-                    this.elevation[x][y] -= 2 / (distance ** 1.5);
+                    this.elevation[x][y] -= 4 / (distance ** 1.5);
                 }
             }
         }
@@ -251,7 +253,7 @@ class Map {
     graded_elevation(x, y) {
         // finds the elevation at a point with a gradiant applied so that the
         // NW corner is the highest
-        return this.elevation[x][y] + ((height - y) + (width - x)) / (height + width);
+        return this.elevation[x][y] + ((height - y) + (4 * (width - x))) / (height + width);
     }
 
     add_ocean() {
