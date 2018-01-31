@@ -8,7 +8,7 @@ function setup() {
 
     //var seed = container.getAttribute('data-seed');
     var seed = Math.floor(Math.random() * 10000);
-    console.log(seed);
+    console.log(seed)
 
     black = color(0);
     white = color(255);
@@ -37,20 +37,80 @@ class Map {
         this.elevation_noisiness = 3; // increase for less smooth elevation boundaries
 
         // ----- Map components ------------\\
-        this.elevation = this.create_matrix();
+        /*this.elevation = this.create_matrix();
         this.coastline = [];
-        this.river = [];
+        this.river = [];*/
+        this.elevation = data;
+        this.population_density = this.create_matrix();
+        this.roads = [];
     }
 
     draw_map() {
         // ----- compute elements ----- \\
-        this.add_elevation();
-        this.add_ocean();
-        this.add_river();
+        //this.add_elevation();
+        //this.add_ocean();
+        //this.add_river();
+        this.add_population_density();
+        this.add_roads();
 
-        var color_gap = 5;
         // ----- draw map ------------- \\
+        //this.draw_topo();
+        this.draw_population();
+
+        /* Handy for debugging the coast algorithms
+        push();
+        noFill();
+        for (var i = 0; i < this.coastline.length; i++) {
+            ellipse(this.coastline[i][0], this.coastline[i][1], 5, 5);
+        }
+        pop()
+        */
+
+        /* for debugging rivers
+        push();
+        for (var i = 0; i < this.river.length; i++) {
+            fill((i/this.river.length) * 255);
+            ellipse(this.river[i][0], this.river[i][1], 10, 10);
+        }
+        pop()
+        */
+
+        this.compass_rose();
+        this.draw_scale();
+    }
+
+    draw_population() {
+        // density map
+        var color_gap = 5;
+        var colors = {
+            water: '#A9DCE0',
+            density: ['#C1CCA5', '#C1CCA5', '#E6F0BF', '#E9EFB5', '#DAC689', '#CDA37F', '#CB9082', '#C8BEC6', '#D6D5E5'],
+        };
+        push();
+        for (var y = 0; y < height; y++) {
+            for (var x = 0; x < width; x++) {
+                var point_color;
+                if (this.get_population_density(x, y) < 0) {
+                    point_color = colors.water;
+                } else {
+                    // bucketize for density map
+                    var value = Math.floor(this.get_population_density(x, y) * 100);
+                    var color_bucket = Math.floor(value / color_gap);
+                    if (color_bucket >= colors.density.length) {
+                        color_bucket = colors.density.length - 1;
+                    }
+                    point_color = colors.density[color_bucket];
+                }
+                stroke(point_color);
+                point(x, y);
+            }
+        }
+        pop();
+    }
+
+    draw_topo() {
         // topo map
+        var color_gap = 5;
         var colors = {
             water: '#A9DCE0',
             topo: ['#C1CCA5', '#C1CCA5', '#E6F0BF', '#E9EFB5', '#DAC689', '#CDA37F', '#CB9082', '#C8BEC6', '#D6D5E5'],
@@ -83,27 +143,6 @@ class Map {
             }
         }
         pop();
-
-        /* Handy for debugging the coast algorithms
-        push();
-        noFill();
-        for (var i = 0; i < this.coastline.length; i++) {
-            ellipse(this.coastline[i][0], this.coastline[i][1], 5, 5);
-        }
-        pop()
-        */
-
-        /* for debugging rivers
-        push();
-        for (var i = 0; i < this.river.length; i++) {
-            fill((i/this.river.length) * 255);
-            ellipse(this.river[i][0], this.river[i][1], 10, 10);
-        }
-        pop()
-        */
-
-        this.compass_rose();
-        this.draw_scale();
     }
 
     topo_border(x, y) {
@@ -158,6 +197,62 @@ class Map {
         if (this.on_map(x, y)) {
             return this.elevation[x][y];
         }
+    }
+
+    add_roads() {
+        // adds streets
+    }
+
+    add_population_density() {
+        // simplex noise that is centered around a downtown peak
+        this.city_center = [Math.round(random(width / 2, 3 * width / 4)), Math.round(random(height / 2, 3 * height / 4))];
+        var longest = Math.sqrt(width ** 2 + height ** 2);
+
+        for (var y = 0; y < height; y++) {
+            for (var x = 0; x < width; x++) {
+                if (this.is_water(x, y)) {
+                    this.population_density[x][y] = -1;
+                    continue
+                }
+                // distance from city center - closer means higher density
+                var distance = Math.sqrt(Math.pow(this.city_center[0] - x, 2) + Math.pow(this.city_center[1] - y, 2));
+
+                // higher number -> "zoom out"
+                var frequency = this.elevation_scale / width;
+
+                var nx = x * frequency - 0.5;
+                var ny = y * frequency - 0.5;
+
+                // noisiness of edges
+                var octaves = this.elevation_noisiness;
+
+                var noise_value = 0;
+                var divisor = 1;
+                for (var i = 1; i <= octaves; i = i * 2) {
+                    noise_value += 1 / i * this.get_noise(i * nx, i * ny);
+                    divisor += 1 / i;
+                }
+                noise_value = noise_value / divisor; // keeps the value between 0 and 1
+                noise_value = Math.pow(noise_value, this.elevation_range); // flattens out the lows
+
+                // set proportionality to city center
+                noise_value = noise_value * ((longest / distance) ** 0.3);
+                if (x < 10 && y < 10) {
+                    console.log(noise_value);
+                }
+                // keep the value between 0 and 1
+
+                this.population_density[x][y] = noise_value;
+            }
+        }
+    }
+
+    get_population_density(x, y) {
+        return this.population_density[x][y];
+    }
+
+    is_water(x, y) {
+        return this.get_elevation(x, y) < 0;
     }
 
     add_river() {
