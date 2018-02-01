@@ -7,7 +7,7 @@ function setup() {
     canvas.parent(container);
 
     //var seed = container.getAttribute('data-seed');
-    var seed = 'test';//Math.floor(Math.random() * 10000);
+    var seed = 5714;//Math.floor(Math.random() * 10000);
     console.log(seed)
 
     black = color(0);
@@ -37,11 +37,14 @@ class Map {
         this.elevation_noisiness = 3; // increase for less smooth elevation boundaries
 
         // ----- Map components ------------\\
-        /*this.elevation = this.create_matrix();
-        this.coastline = [];
-        this.river = [];*/
         this.elevation = data;
+        //this.elevation = this.create_matrix();
+        this.coastline = [];
+        //this.river = [];
+        this.river = river_data;
         this.population_density = this.create_matrix();
+        this.population_edges = [];
+        this.population_peaks = [];
         this.roads = [];
     }
 
@@ -51,11 +54,12 @@ class Map {
         //this.add_ocean();
         //this.add_river();
         this.add_population_density();
-        this.add_roads();
+        //this.add_roads();
 
         // ----- draw map ------------- \\
         //this.draw_topo();
         this.draw_population();
+        //this.draw_roads();
 
         /* Handy for debugging the coast algorithms
         push();
@@ -74,6 +78,13 @@ class Map {
         }
         pop()
         */
+
+        push();
+        for (var i = 0; i < this.population_edges.length; i++) {
+            fill((i/this.population_edges.length) * 255);
+            ellipse(this.population_edges[i][0], this.population_edges[i][1], 10, 10);
+        }
+        pop()
 
         push();
         for (var i = 0; i < this.population_peaks.length; i++) {
@@ -106,6 +117,19 @@ class Map {
                 }
                 stroke(point_color, point_color, 255);
                 point(x, y);
+            }
+        }
+        pop();
+    }
+
+    draw_roads() {
+        push();
+        strokeWeight(5);
+        for (var i = 0; i < this.roads.length; i++) {
+            stroke((i/this.roads.length) * 255);
+            var road = this.roads[i];
+            for (var j = 0; j < road.length - 1; j++) {
+                line(road[j][0], road[j][1], road[j + 1][0], road[j + 1][1]);
             }
         }
         pop();
@@ -167,6 +191,7 @@ class Map {
 
     add_elevation() {
         // uses simplex noise to create an elevation matrix
+        var start_time = new Date();
         for (var y = 0; y < height; y++) {
             for (var x = 0; x < width; x++) {
                 // higher number -> "zoom out"
@@ -190,6 +215,8 @@ class Map {
                 this.elevation[x][y] = noise_value;
             }
         }
+        var end_time = new Date();
+        console.log('elevation map', (end_time - start_time) / 1000)
     }
 
     get_elevation(x, y) {
@@ -202,16 +229,51 @@ class Map {
         }
     }
 
-    add_roads() {
-        // attempt to place reasonable looking major and minor streets on the map
+    segment_id(p1, p2) {
+        return str(p1).join(',') + '|' + str(p2).join(',');
+    }
+
+    get_corner_angle(p1, p2, p3) {
+        var a = this.get_distance(p3, p1);
+        var b = this.get_distance(p1, p2);
+        var c = this.get_distance(p2, p3);
+
+        return Math.acos(((b ** 2) + (c ** 2) - (a ** 2)) / (2 * b * c));
+    }
+
+    get_best_fit(point, options, fit_function) {
+        var closest;
+        for (var i = 0; i < options.length; i++) {
+            var option = options[i];
+            if (!option) {
+                // handles arrays with deleted entries set to undefined
+                continue;
+            }
+            var distance = fit_function(option, point)
+            if (distance != 0 && (!closest || distance < closest[2])) {
+                closest = [option[0], option[1], distance, i];
+            }
+        }
+        if (!closest) {
+            return false;
+        }
+        return {
+            'match': [closest[0], closest[1]],
+            'distance': closest[2],
+            'index': closest[3]
+        }
+    }
+
+    get_distance(p1, p2) {
+        return Math.sqrt(Math.pow(p2[0] - p1[0], 2) + Math.pow(p2[1] - p1[1], 2));
     }
 
     add_population_density() {
         // simplex noise that is centered around a downtown peak
+        var start_time = new Date();
         this.city_center = [Math.round(random(width / 2, 3 * width / 4)), Math.round(random(height / 2, 3 * height / 4))];
         var longest = Math.sqrt(width ** 2 + height ** 2);
 
-        this.population_peaks = [];
         for (var y = 0; y < height; y++) {
             for (var x = 0; x < width; x++) {
                 if (this.is_water(x, y)) {
@@ -242,18 +304,42 @@ class Map {
                 // adding 0.00001 prevents the exact city center point from being infinite
                 noise_value = noise_value * ((longest / (distance + 0.00001)) * 0.45);
 
+                //var river_distance = this.get_best_fit([x, y], this.river, this.get_distance)
+                //noise_value -= 4 / (river_distance ** 1.5);
+
                 this.population_density[x][y] = noise_value;
             }
         }
+        var end_time = new Date();
+        console.log('set population density', (end_time - start_time) / 1000)
+
+        var start_time = new Date();
+        // dig out the riverbed
+        for (var y = 0; y < height; y++) {
+            for (var x = 0; x < width; x++) {
+                // this starting distance is higher than the actual possible max
+                var distance = Math.pow(height, 2) + Math.pow(width, 2);
+                // check how far this point is from any river segment
+                for (var j = 0; j < this.river.length; j++) {
+                    var h_distance = Math.sqrt(Math.pow(this.river[j][0] - x, 2) + Math.pow(this.river[j][1] - y, 2));
+                    distance = h_distance < distance ? h_distance : distance;
+                }
+                this.population_density[x][y] -= 4 / ((distance + 0.00001) ** 0.9);
+            }
+        }
+        var end_time = new Date();
+        console.log('modify population around river', (end_time - start_time) / 1000)
+
+        var start_time = new Date();
         this.population_peaks = [];
-        this.edge_peaks = [];
+        this.population_edges = [];
         var radius = 1;
         for (var y = 0; y < height; y++) {
             for (var x = 0; x < width; x++) {
                 if (this.is_water(x, y)) {
                     continue;
                 }
-                var angle = TWO_PI / 100;
+                var angle = TWO_PI / 10;
                 var higher = true;
                 for (var a = 0; a < TWO_PI; a += angle) {
                     var ix = x + radius * cos(a);
@@ -265,7 +351,7 @@ class Map {
                 }
                 if (higher) {
                     if (x == 0 || y == 0 || x == width - 1 || y == height - 1) {
-                        this.edge_peaks.push = [x, y, this.get_population_density];
+                        this.population_edges.push([x, y, this.get_population_density(x, y)]);
                     } else {
                         this.population_peaks.push([x, y, this.get_population_density(x, y)]);
                     }
@@ -273,6 +359,8 @@ class Map {
             }
         }
         this.population_peaks.sort(function (a, b) { return a[2] > b[2] ? -1 : 1; });
+        var end_time = new Date();
+        console.log('find local maxima', (end_time - start_time) / 1000)
     }
 
     get_population_density(x, y) {
@@ -352,6 +440,7 @@ class Map {
             return;
         }
 
+        var start_time = new Date();
         // place points between the current path
         var river_detail = [];
         for (var r = 0; r < this.river.length - 1; r++) {
@@ -359,7 +448,10 @@ class Map {
             river_detail = river_detail.concat(this.displace_midpoint(segment, 5, 0.5, 5));
         }
         this.river = river_detail;
+        var end_time = new Date();
+        console.log('select river midpoints', (end_time - start_time) / 1000)
 
+        var start_time = new Date();
         // dig out the riverbed
         for (var y = 0; y < height; y++) {
             for (var x = 0; x < width; x++) {
@@ -370,9 +462,11 @@ class Map {
                     var h_distance = Math.sqrt(Math.pow(this.river[j][0] - x, 2) + Math.pow(this.river[j][1] - y, 2));
                     distance = h_distance < distance ? h_distance : distance;
                 }
-                this.elevation[x][y] -= 4 / (distance ** 1.5);
+                this.elevation[x][y] -= 4 / ((distance + 0.00001) ** 1.5);
             }
         }
+        var end_time = new Date();
+        console.log('dig out river', (end_time - start_time) / 1000)
     }
 
     graded_elevation(x, y) {
@@ -383,6 +477,7 @@ class Map {
 
     add_ocean() {
         // adds an ocean to the SE corner of the map
+        var start_time = new Date();
         var start = this.find_axis_low(width / 16, height - 1, 0, 5 * width / 8);
         var end = this.find_axis_low(width - 1, height / 16, 1, height / 2);
 
@@ -392,7 +487,10 @@ class Map {
         // add the map's SE corner to complete the polygon
         this.coastline.push([width-1, height-1]);
         this.coastline.splice(0, 0, [width-1, height-1]);
+        var end_time = new Date();
+        console.log('set coastline', (end_time - start_time) / 1000)
 
+        var start_time = new Date();
         // ray casting to determine which points are inside the coastline polygon
         for (var y = 0; y < height; y++) {
             for (var x = 0; x < width; x++) {
@@ -430,6 +528,8 @@ class Map {
                 }
             }
         }
+        var end_time = new Date();
+        console.log('dig out ocean', (end_time - start_time) / 1000)
     }
 
     segment_intersection(p1, p2, p3, p4) {
