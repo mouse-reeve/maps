@@ -255,21 +255,24 @@ class Map {
                 var angle = TWO_PI / 100;
                 var higher = true;
                 for (var a = 0; a < TWO_PI; a += angle) {
-                    var ix = Math.round(x + (radius * cos(a)));
-                    var iy = Math.round(y + (radius * sin(a)));
+                    var ix = x + radius * cos(a);
+                    var iy = y + radius * sin(a);
                     if (this.get_population_density(x, y) < this.get_population_density(ix, iy) || this.is_water(ix, iy)) {
                         higher = false;
                         break;
                     }
                 }
                 if (higher) {
-                    this.population_peaks.push([x, y]);
+                    this.population_peaks.push([x, y, this.get_population_density(x, y)]);
                 }
             }
         }
+        this.population_peaks.sort(function (a, b) { return a[2] > b[2] ? -1 : 1; });
     }
 
     get_population_density(x, y) {
+        x = Math.round(x);
+        y = Math.round(y);
         if (this.on_map(x, y)) {
             return this.population_density[x][y];
         }
