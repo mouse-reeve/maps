@@ -76,8 +76,8 @@ class Map {
         */
 
         push();
-        noFill();
         for (var i = 0; i < this.population_peaks.length; i++) {
+            fill((i/this.population_peaks.length) * 255);
             ellipse(this.population_peaks[i][0], this.population_peaks[i][1], 10, 10);
         }
         pop()
@@ -203,7 +203,7 @@ class Map {
     }
 
     add_roads() {
-        // adds streets
+        // attempt to place reasonable looking major and minor streets on the map
     }
 
     add_population_density() {
@@ -228,7 +228,7 @@ class Map {
                 var ny = y * frequency - 0.5;
 
                 // noisiness of edges
-                var octaves = this.elevation_noisiness;
+                var octaves = 1;
 
                 var noise_value = 0;
                 var divisor = 1;
@@ -237,15 +237,16 @@ class Map {
                     divisor += 1 / i;
                 }
                 noise_value = noise_value / divisor; // keeps the value between 0 and 1
-                noise_value = Math.pow(noise_value, this.elevation_range); // flattens out the lows
 
                 // set proportionality to city center
-                noise_value = noise_value * ((longest / distance) ** 0.3);
+                // adding 0.00001 prevents the exact city center point from being infinite
+                noise_value = noise_value * ((longest / (distance + 0.00001)) * 0.45);
 
                 this.population_density[x][y] = noise_value;
             }
         }
         this.population_peaks = [];
+        this.edge_peaks = [];
         var radius = 1;
         for (var y = 0; y < height; y++) {
             for (var x = 0; x < width; x++) {
@@ -263,7 +264,11 @@ class Map {
                     }
                 }
                 if (higher) {
-                    this.population_peaks.push([x, y, this.get_population_density(x, y)]);
+                    if (x == 0 || y == 0 || x == width - 1 || y == height - 1) {
+                        this.edge_peaks.push = [x, y, this.get_population_density];
+                    } else {
+                        this.population_peaks.push([x, y, this.get_population_density(x, y)]);
+                    }
                 }
             }
         }
