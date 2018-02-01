@@ -7,7 +7,7 @@ function setup() {
     canvas.parent(container);
 
     //var seed = container.getAttribute('data-seed');
-    var seed = Math.floor(Math.random() * 10000);
+    var seed = 'test';//Math.floor(Math.random() * 10000);
     console.log(seed)
 
     black = color(0);
@@ -75,6 +75,13 @@ class Map {
         pop()
         */
 
+        push();
+        noFill();
+        for (var i = 0; i < this.population_peaks.length; i++) {
+            ellipse(this.population_peaks[i][0], this.population_peaks[i][1], 10, 10);
+        }
+        pop()
+
         this.compass_rose();
         this.draw_scale();
     }
@@ -84,24 +91,20 @@ class Map {
         var color_gap = 5;
         var colors = {
             water: '#A9DCE0',
-            density: ['#C1CCA5', '#C1CCA5', '#E6F0BF', '#E9EFB5', '#DAC689', '#CDA37F', '#CB9082', '#C8BEC6', '#D6D5E5'],
         };
         push();
         for (var y = 0; y < height; y++) {
             for (var x = 0; x < width; x++) {
                 var point_color;
-                if (this.get_population_density(x, y) < 0) {
+                if (this.is_water(x, y)) {
                     point_color = colors.water;
                 } else {
-                    // bucketize for density map
-                    var value = Math.floor(this.get_population_density(x, y) * 100);
-                    var color_bucket = Math.floor(value / color_gap);
-                    if (color_bucket >= colors.density.length) {
-                        color_bucket = colors.density.length - 1;
-                    }
-                    point_color = colors.density[color_bucket];
+                    point_color = 255 - (255 * this.get_population_density(x, y));
+                    point_color = point_color > 255 ? 255 : point_color;
+                    point_color = point_color < 0 ? 0 : point_color;
+                    point_color += point_color * 0.1;
                 }
-                stroke(point_color);
+                stroke(point_color, point_color, 255);
                 point(x, y);
             }
         }
@@ -208,6 +211,7 @@ class Map {
         this.city_center = [Math.round(random(width / 2, 3 * width / 4)), Math.round(random(height / 2, 3 * height / 4))];
         var longest = Math.sqrt(width ** 2 + height ** 2);
 
+        this.population_peaks = [];
         for (var y = 0; y < height; y++) {
             for (var x = 0; x < width; x++) {
                 if (this.is_water(x, y)) {
@@ -237,18 +241,38 @@ class Map {
 
                 // set proportionality to city center
                 noise_value = noise_value * ((longest / distance) ** 0.3);
-                if (x < 10 && y < 10) {
-                    console.log(noise_value);
-                }
-                // keep the value between 0 and 1
 
                 this.population_density[x][y] = noise_value;
+            }
+        }
+        this.population_peaks = [];
+        var radius = 1;
+        for (var y = 0; y < height; y++) {
+            for (var x = 0; x < width; x++) {
+                if (this.is_water(x, y)) {
+                    continue;
+                }
+                var angle = TWO_PI / 100;
+                var higher = true;
+                for (var a = 0; a < TWO_PI; a += angle) {
+                    var ix = Math.round(x + (radius * cos(a)));
+                    var iy = Math.round(y + (radius * sin(a)));
+                    if (this.get_population_density(x, y) < this.get_population_density(ix, iy) || this.is_water(ix, iy)) {
+                        higher = false;
+                        break;
+                    }
+                }
+                if (higher) {
+                    this.population_peaks.push([x, y]);
+                }
             }
         }
     }
 
     get_population_density(x, y) {
-        return this.population_density[x][y];
+        if (this.on_map(x, y)) {
+            return this.population_density[x][y];
+        }
     }
 
     is_water(x, y) {
