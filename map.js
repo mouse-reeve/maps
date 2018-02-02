@@ -13,13 +13,14 @@ function setup() {
         params[pair[0]] = pair[1];
     }
     var seed = params.seed || Math.floor(Math.random() * 10000);
+    var layer = params.layer || 'topo';
     console.log(seed)
 
     black = color(0);
     white = color(255);
 
     var map = new Map(seed);
-    map.draw_map();
+    map.draw_map(layer);
 
     noLoop();
 }
@@ -55,7 +56,7 @@ class Map {
         this.roads = [];
     }
 
-    draw_map() {
+    draw_map(layer) {
         // ----- compute elements ----- \\
         this.add_elevation();
         this.add_ocean();
@@ -64,9 +65,14 @@ class Map {
         //this.add_roads();
 
         // ----- draw map ------------- \\
-        this.draw_topo();
-        //this.draw_population();
-        this.draw_roads();
+        if (layer == 'topo') {
+            this.draw_topo();
+        } else if (layer == 'population') {
+            this.draw_population();
+        } else if (layer == 'roads') {
+            this.draw_population();
+            this.draw_roads();
+        }
 
         /* Handy for debugging the coast algorithms
         push();
