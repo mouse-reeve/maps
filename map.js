@@ -460,7 +460,7 @@ class Map {
             if (min_y == undefined || point[1] < min_y) {
                 min_y = Math.round(point[1]);
             }
-            if (max_y == undefined || point[0] > max_y) {
+            if (max_y == undefined || point[1] > max_y) {
                 max_y = Math.round(point[1]);
             }
         }
@@ -470,8 +470,8 @@ class Map {
         var start_time = new Date();
         // dig out the riverbed
         var radius = 150;
-        for (var y = min_y - radius; y < max_y + radius && y < height; y++) {
-            for (var x = 0; x < max_x + radius && x < width; x++) {
+        for (var y = min_y - radius; y < (max_y + radius) && y < height; y++) {
+            for (var x = 0; x < (max_x + radius) && x < width; x++) {
                 // this starting distance is higher than the actual possible max
                 var distance = Math.pow(height, 2) + Math.pow(width, 2);
                 // check how far this point is from any river segment
