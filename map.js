@@ -7,7 +7,7 @@ function setup() {
     canvas.parent(container);
 
     //var seed = container.getAttribute('data-seed');
-    var seed = Math.floor(Math.random() * 10000);
+    var seed = 5662;//Math.floor(Math.random() * 10000);
     console.log(seed)
 
     black = color(0);
@@ -278,6 +278,10 @@ class Map {
         // simplex noise that is centered around a downtown peak
         var start_time = new Date();
         this.city_center = [Math.round(random(width / 2, 3 * width / 4)), Math.round(random(height / 2, 3 * height / 4))];
+        // place it more randomly if it fell in the water
+        while (this.is_water(this.city_center[0], this.city_center[1])) {
+            this.city_center = [Math.round(random(width / 6, 5 * width / 6)), Math.round(random(height / 6, 5 * height / 6))];
+        }
         var longest = Math.sqrt(width ** 2 + height ** 2);
 
         for (var y = 0; y < height; y++) {
@@ -455,7 +459,6 @@ class Map {
                 max_y = Math.round(point[1]);
             }
         }
-        console.log(max_x, min_y, max_y);
         var end_time = new Date();
         console.log('select river midpoints', (end_time - start_time) / 1000)
 
