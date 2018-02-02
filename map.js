@@ -477,13 +477,25 @@ class Map {
         // add the map's SE corner to complete the polygon
         this.coastline.push([width-1, height-1]);
         this.coastline.splice(0, 0, [width-1, height-1]);
+
+        var min_x;
+        var min_y;
+        for (var i = 0; i < this.coastline.length; i++) {
+            var point = this.coastline[i];
+            if (min_x == undefined || point[0] < min_x) {
+                min_x = Math.round(point[0]);
+            }
+            if (min_y == undefined || point[1] < min_y) {
+                min_y = Math.round(point[1]);
+            }
+        }
         var end_time = new Date();
         console.log('set coastline', (end_time - start_time) / 1000)
 
         var start_time = new Date();
         // ray casting to determine which points are inside the coastline polygon
-        for (var y = 0; y < height; y++) {
-            for (var x = 0; x < width; x++) {
+        for (var y = min_y; y < height; y++) {
+            for (var x = min_x; x < width; x++) {
                 // this starting distance is always higher than the actual possible max
                 var distance = Math.pow(height, 2) + Math.pow(width, 2);
                 var hits = [];
@@ -502,7 +514,7 @@ class Map {
                     // don't do this calculation with the final (corner) point
                     // because that's supposed to just be "out to sea"
                     if (j < this.coastline.length - 2) {
-                        var h_distance = Math.sqrt(Math.pow(this.coastline[j + 1][0] - x, 2) + Math.pow(this.coastline[j + 1][1] - y, 2));
+                        var h_distance = this.get_distance(this.coastline[j + 1], [x, y]);
                         distance = h_distance < distance ? h_distance : distance;
                     }
 
