@@ -7,7 +7,7 @@ function setup() {
     canvas.parent(container);
 
     //var seed = container.getAttribute('data-seed');
-    var seed = 4547;//Math.floor(Math.random() * 10000);
+    var seed = Math.floor(Math.random() * 10000);
     console.log(seed)
 
     black = color(0);
@@ -438,13 +438,32 @@ class Map {
             river_detail = river_detail.concat(this.displace_midpoint(segment, 5, 0.5, 5));
         }
         this.river = river_detail;
+
+        // store min/max coords
+        var max_x;
+        var min_y;
+        var max_y;
+        for (var i = 0; i < this.river.length; i++) {
+            var point = this.river[i];
+            if (max_x == undefined || point[0] > max_x) {
+                max_x = Math.round(point[0]);
+            }
+            if (min_y == undefined || point[1] < min_y) {
+                min_y = Math.round(point[1]);
+            }
+            if (max_y == undefined || point[0] > max_y) {
+                max_y = Math.round(point[1]);
+            }
+        }
+        console.log(max_x, min_y, max_y);
         var end_time = new Date();
         console.log('select river midpoints', (end_time - start_time) / 1000)
 
         var start_time = new Date();
         // dig out the riverbed
-        for (var y = 0; y < height; y++) {
-            for (var x = 0; x < width; x++) {
+        var radius = 150;
+        for (var y = min_y - radius; y < max_y + radius; y++) {
+            for (var x = 0; x < max_x + radius; x++) {
                 // this starting distance is higher than the actual possible max
                 var distance = Math.pow(height, 2) + Math.pow(width, 2);
                 // check how far this point is from any river segment
@@ -452,7 +471,9 @@ class Map {
                     var h_distance = Math.sqrt(Math.pow(this.river[j][0] - x, 2) + Math.pow(this.river[j][1] - y, 2));
                     distance = h_distance < distance ? h_distance : distance;
                 }
-                this.elevation[x][y] -= 4 / ((distance + 0.00001) ** 1.5);
+                if (distance < radius) {
+                    this.elevation[x][y] -= 4 / ((distance + 0.00001) ** 1.5);
+                }
             }
         }
         var end_time = new Date();
@@ -478,6 +499,7 @@ class Map {
         this.coastline.push([width-1, height-1]);
         this.coastline.splice(0, 0, [width-1, height-1]);
 
+        // knowing the smallest coord means an easier elevation computation below
         var min_x;
         var min_y;
         for (var i = 0; i < this.coastline.length; i++) {
