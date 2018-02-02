@@ -7,7 +7,7 @@ function setup() {
     canvas.parent(container);
 
     //var seed = container.getAttribute('data-seed');
-    var seed = 5714;//Math.floor(Math.random() * 10000);
+    var seed = 1979;//Math.floor(Math.random() * 10000);
     console.log(seed)
 
     black = color(0);
@@ -40,8 +40,10 @@ class Map {
         this.elevation = data;
         //this.elevation = this.create_matrix();
         this.coastline = [];
-        //this.river = [];
-        this.river = river_data;
+        // tracks if the river succeeds
+        this.has_river = true;
+        this.river = [];
+        //this.river = river_data;
         this.population_density = this.create_matrix();
         this.population_edges = [];
         this.population_peaks = [];
@@ -50,16 +52,16 @@ class Map {
 
     draw_map() {
         // ----- compute elements ----- \\
-        //this.add_elevation();
-        //this.add_ocean();
-        //this.add_river();
+        this.add_elevation();
+        this.add_ocean();
+        this.add_river();
         this.add_population_density();
         //this.add_roads();
 
         // ----- draw map ------------- \\
         //this.draw_topo();
         this.draw_population();
-        //this.draw_roads();
+        this.draw_roads();
 
         /* Handy for debugging the coast algorithms
         push();
@@ -229,6 +231,10 @@ class Map {
         }
     }
 
+    add_roads() {
+        // attempt to place reasonable looking major and minor streets on the map
+    }
+
     segment_id(p1, p2) {
         return str(p1).join(',') + '|' + str(p2).join(',');
     }
@@ -313,22 +319,24 @@ class Map {
         var end_time = new Date();
         console.log('set population density', (end_time - start_time) / 1000)
 
-        var start_time = new Date();
-        // dig out the riverbed
-        for (var y = 0; y < height; y++) {
-            for (var x = 0; x < width; x++) {
-                // this starting distance is higher than the actual possible max
-                var distance = Math.pow(height, 2) + Math.pow(width, 2);
-                // check how far this point is from any river segment
-                for (var j = 0; j < this.river.length; j++) {
-                    var h_distance = Math.sqrt(Math.pow(this.river[j][0] - x, 2) + Math.pow(this.river[j][1] - y, 2));
-                    distance = h_distance < distance ? h_distance : distance;
+        if (this.has_river) {
+            var start_time = new Date();
+            // dig out the riverbed
+            for (var y = 0; y < height; y++) {
+                for (var x = 0; x < width; x++) {
+                    // this starting distance is higher than the actual possible max
+                    var distance = Math.pow(height, 2) + Math.pow(width, 2);
+                    // check how far this point is from any river segment
+                    for (var j = 0; j < this.river.length; j++) {
+                        var h_distance = Math.sqrt(Math.pow(this.river[j][0] - x, 2) + Math.pow(this.river[j][1] - y, 2));
+                        distance = h_distance < distance ? h_distance : distance;
+                    }
+                    this.population_density[x][y] -= 4 / ((distance + 0.00001) ** 1.5);
                 }
-                this.population_density[x][y] -= 4 / ((distance + 0.00001) ** 0.9);
             }
+            var end_time = new Date();
+            console.log('modify population around river', (end_time - start_time) / 1000)
         }
-        var end_time = new Date();
-        console.log('modify population around river', (end_time - start_time) / 1000)
 
         var start_time = new Date();
         this.population_peaks = [];
@@ -437,6 +445,7 @@ class Map {
         this.get_elevation = this.real_elevation;
 
         if (!success) {
+            this.has_river = false;
             return;
         }
 
