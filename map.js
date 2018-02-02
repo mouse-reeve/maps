@@ -37,13 +37,13 @@ class Map {
         this.elevation_noisiness = 3; // increase for less smooth elevation boundaries
 
         // ----- Map components ------------\\
-        this.elevation = data;
-        //this.elevation = this.create_matrix();
+        //this.elevation = data;
+        this.elevation = this.create_matrix();
         this.coastline = [];
         // tracks if the river succeeds
         this.has_river = true;
-        //this.river = [];
-        this.river = river_data;
+        this.river = [];
+        //this.river = river_data;
         this.population_density = this.create_matrix();
         this.population_edges = [];
         this.population_peaks = [];
@@ -52,15 +52,15 @@ class Map {
 
     draw_map() {
         // ----- compute elements ----- \\
-        //this.add_elevation();
-        //this.add_ocean();
-        //this.add_river();
+        this.add_elevation();
+        this.add_ocean();
+        this.add_river();
         this.add_population_density();
-        this.add_roads();
+        //this.add_roads();
 
         // ----- draw map ------------- \\
-        //this.draw_topo();
-        this.draw_population();
+        this.draw_topo();
+        //this.draw_population();
         this.draw_roads();
 
         /* Handy for debugging the coast algorithms
@@ -330,30 +330,18 @@ class Map {
                 }
                 var angle = TWO_PI / 10;
                 var higher = true;
-                if (x == 0 || x == width - 1) {
-                    // only check edge points relative to their edge, not the whole radius
-                    if (!this.is_water(x + 1, y) && !this.is_water(x - 1, y) &&
-                            this.get_population_density(x, y) > this.get_population_density(x, y - radius) &&
-                            this.get_population_density(x, y) > this.get_population_density(x, y + radius)) {
+                for (var a = 0; a < TWO_PI; a += angle) {
+                    var ix = x + radius * cos(a);
+                    var iy = y + radius * sin(a);
+                    if (this.get_population_density(x, y) < this.get_population_density(ix, iy) || this.is_water(ix, iy)) {
+                        higher = false;
+                        break;
+                    }
+                }
+                if (higher) {
+                    if (x == 0 || x == width - 1 || y == 0 || y == height - 1) {
                         this.population_edges.push([x, y, this.get_population_density(x, y)]);
-                    }
-                } else if (y == 0 || y == height - 1) {
-                    // only check edge points relative to their edge, not the whole radius
-                    if (!this.is_water(x, y + 1) && !this.is_water(x, y - 1) &&
-                            this.get_population_density(x, y) > this.get_population_density(x - radius, y) &&
-                            this.get_population_density(x, y) > this.get_population_density(x + radius, y)) {
-                        this.population_edges.push([x, y, this.get_population_density(x, y)]);
-                    }
-                } else {
-                    for (var a = 0; a < TWO_PI; a += angle) {
-                        var ix = x + radius * cos(a);
-                        var iy = y + radius * sin(a);
-                        if (this.get_population_density(x, y) < this.get_population_density(ix, iy) || this.is_water(ix, iy)) {
-                            higher = false;
-                            break;
-                        }
-                    }
-                    if (higher) {
+                    } else {
                         this.population_peaks.push([x, y, this.get_population_density(x, y)]);
                     }
                 }
