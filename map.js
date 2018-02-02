@@ -7,7 +7,7 @@ function setup() {
     canvas.parent(container);
 
     //var seed = container.getAttribute('data-seed');
-    var seed = 1979;//Math.floor(Math.random() * 10000);
+    var seed = Math.floor(Math.random() * 10000);
     console.log(seed)
 
     black = color(0);
@@ -56,7 +56,7 @@ class Map {
         this.add_ocean();
         this.add_river();
         this.add_population_density();
-        //this.add_roads();
+        this.add_roads();
 
         // ----- draw map ------------- \\
         //this.draw_topo();
@@ -349,18 +349,26 @@ class Map {
                 }
                 var angle = TWO_PI / 10;
                 var higher = true;
-                for (var a = 0; a < TWO_PI; a += angle) {
-                    var ix = x + radius * cos(a);
-                    var iy = y + radius * sin(a);
-                    if (this.get_population_density(x, y) < this.get_population_density(ix, iy) || this.is_water(ix, iy)) {
-                        higher = false;
-                        break;
-                    }
-                }
-                if (higher) {
-                    if (x == 0 || y == 0 || x == width - 1 || y == height - 1) {
+                if (x == 0 || x == width - 1) {
+                    // only check edge points relative to their edge, not the whole radius
+                    if (this.get_population_density(x, y) > this.get_population_density(x, y - radius) && this.get_population_density(x, y) > this.get_population_density(x, y + radius)) {
                         this.population_edges.push([x, y, this.get_population_density(x, y)]);
-                    } else {
+                    }
+                } else if (y == 0 || y == height - 1) {
+                    // only check edge points relative to their edge, not the whole radius
+                    if (this.get_population_density(x, y) > this.get_population_density(x - radius, y) && this.get_population_density(x, y) > this.get_population_density(x + radius, y)) {
+                        this.population_edges.push([x, y, this.get_population_density(x, y)]);
+                    }
+                } else {
+                    for (var a = 0; a < TWO_PI; a += angle) {
+                        var ix = x + radius * cos(a);
+                        var iy = y + radius * sin(a);
+                        if (this.get_population_density(x, y) < this.get_population_density(ix, iy) || this.is_water(ix, iy)) {
+                            higher = false;
+                            break;
+                        }
+                    }
+                    if (higher) {
                         this.population_peaks.push([x, y, this.get_population_density(x, y)]);
                     }
                 }
