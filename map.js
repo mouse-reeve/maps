@@ -6,8 +6,13 @@ function setup() {
     var canvas = createCanvas(1165, 600);
     canvas.parent(container);
 
-    //var seed = container.getAttribute('data-seed');
-    var seed = 5662;//Math.floor(Math.random() * 10000);
+    var param_string = window.location.search.substr(1).split('&');
+    var params = {};
+    for (var i = 0; i < param_string.length; i++) {
+        var pair = param_string[i].split('=');
+        params[pair[0]] = pair[1];
+    }
+    var seed = params.seed || Math.floor(Math.random() * 10000);
     console.log(seed)
 
     black = color(0);
@@ -465,8 +470,8 @@ class Map {
         var start_time = new Date();
         // dig out the riverbed
         var radius = 150;
-        for (var y = min_y - radius; y < max_y + radius; y++) {
-            for (var x = 0; x < max_x + radius; x++) {
+        for (var y = min_y - radius; y < max_y + radius && y < height; y++) {
+            for (var x = 0; x < max_x + radius && x < width; x++) {
                 // this starting distance is higher than the actual possible max
                 var distance = Math.pow(height, 2) + Math.pow(width, 2);
                 // check how far this point is from any river segment
