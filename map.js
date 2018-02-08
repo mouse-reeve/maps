@@ -62,7 +62,7 @@ class Map {
         this.add_ocean();
         this.add_river();
         this.add_population_density();
-        //this.add_roads();
+        this.add_roads();
 
         // ----- draw map ------------- \\
         if (layer == 'topo') {
@@ -244,6 +244,33 @@ class Map {
 
     add_roads() {
         // attempt to place reasonable looking major and minor streets on the map
+
+        var start_time = new Date();
+        // draw a road from the city center to the closest maxima
+        var road = [this.city_center];
+        // since population_peaks is in order of population density, the 0th entry is always city center
+        var options = Object.assign([], this.population_peaks.slice(1));
+        var next = this.get_best_fit(this.city_center, options, this.get_distance);
+        road.push(next.match);
+        delete options[next.index];
+
+        // continue the road from both ends to the next point with as close to a 180degree angle as possible
+        var fit_function = function(point, line) {
+            console.log(point, this.get_corner_angle(line[0], line[1], point));
+            return Math.abs(PI - this.get_corner_angle(line[0], line[1], point) % TWO_PI);
+        }
+        next = this.get_best_fit(road, options, fit_function);
+        road.push(next.match);
+        delete options[next.index];
+
+        next = this.get_best_fit([road[1], road[0]], options, fit_function);
+        road.splice(0, 0, next.match);
+        delete options[next.index];
+
+        this.roads.push(road);
+
+        var end_time = new Date();
+        console.log('highway', (end_time - start_time) / 1000)
     }
 
     segment_id(p1, p2) {
@@ -251,6 +278,13 @@ class Map {
     }
 
     get_corner_angle(p1, p2, p3) {
+        /*      p1
+        /       /|
+        /   b /  | a
+        /   /A___|
+        / p2   c  p3
+        */
+
         var a = this.get_distance(p3, p1);
         var b = this.get_distance(p1, p2);
         var c = this.get_distance(p2, p3);
@@ -354,11 +388,12 @@ class Map {
                     }
                 }
                 if (higher) {
-                    if (x == 0 || x == width - 1 || y == 0 || y == height - 1) {
+                    this.population_peaks.push([x, y, this.get_population_density(x, y)]);
+                    /*if (x == 0 || x == width - 1 || y == 0 || y == height - 1) {
                         this.population_edges.push([x, y, this.get_population_density(x, y)]);
                     } else {
                         this.population_peaks.push([x, y, this.get_population_density(x, y)]);
-                    }
+                    }*/
                 }
             }
         }
