@@ -244,30 +244,37 @@ class Map {
 
     add_roads() {
         // attempt to place reasonable looking major and minor streets on the map
-
-        var start_time = new Date();
-        // draw a road from the city center to the closest maxima
-        var road = [this.city_center];
-        // since population_peaks is in order of population density, the 0th entry is always city center
-        var options = Object.assign([], this.population_peaks.slice(1));
-        var next = this.get_best_fit(this.city_center, options, this.get_distance);
-        road.push(next.match);
-        delete options[next.index];
-
-        // continue the road from both ends to the next point with as close to a 180degree angle as possible
         var fit_function = function(point, line) {
-            console.log(point, this.get_corner_angle(line[0], line[1], point));
             return Math.abs(PI - this.get_corner_angle(line[0], line[1], point) % TWO_PI);
         }
-        next = this.get_best_fit(road, options, fit_function);
-        road.push(next.match);
-        delete options[next.index];
+        var start_time = new Date();
+        var min_angle = PI / 3;
+        var options = Object.assign([], this.population_peaks);
+        while (options.length) {
+            // draw a road from the city center to the closest maxima
+            var road = options.slice(0, 1);
+            options = options.slice(1);
+            // since population_peaks is in order of population density, the 0th entry is always city center
+            var next = this.get_best_fit(road[0], options, this.get_distance);
+            if (!next) break;
+            road.push(next.match);
+            options.splice(next.index, 1);
 
-        next = this.get_best_fit([road[1], road[0]], options, fit_function);
-        road.splice(0, 0, next.match);
-        delete options[next.index];
+            // continue the road from both ends to the next point with as close to a 180degree angle as possible
+            next = this.get_best_fit([road[road.length - 2], road[road.length - 1]], options, fit_function);
+            if (next && next.distance < min_angle) {
+                road.push(next.match);
+                options.splice(next.index, 1);
+            }
 
-        this.roads.push(road);
+            next = this.get_best_fit([road[1], road[0]], options, fit_function);
+            if (next && next.distance < min_angle) {
+                road.splice(0, 0, next.match);
+                options.splice(next.index, 1);
+            }
+
+            this.roads.push(road);
+        }
 
         var end_time = new Date();
         console.log('highway', (end_time - start_time) / 1000)
