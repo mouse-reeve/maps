@@ -91,14 +91,6 @@ class Map {
         }
         pop()
         */
-
-        push();
-        for (var i = 0; i < this.population_edges.length; i++) {
-            fill((i/this.population_edges.length) * 255);
-            ellipse(this.population_edges[i][0], this.population_edges[i][1], 10, 10);
-        }
-        pop()
-
         push();
         for (var i = 0; i < this.population_peaks.length; i++) {
             fill((i/this.population_peaks.length) * 255);
@@ -377,7 +369,6 @@ class Map {
 
         var start_time = new Date();
         this.population_peaks = [];
-        this.population_edges = [];
         var radius = 1;
         for (var y = 0; y < height; y++) {
             for (var x = 0; x < width; x++) {
@@ -396,11 +387,6 @@ class Map {
                 }
                 if (higher) {
                     this.population_peaks.push([x, y, this.get_population_density(x, y)]);
-                    /*if (x == 0 || x == width - 1 || y == 0 || y == height - 1) {
-                        this.population_edges.push([x, y, this.get_population_density(x, y)]);
-                    } else {
-                        this.population_peaks.push([x, y, this.get_population_density(x, y)]);
-                    }*/
                 }
             }
         }
