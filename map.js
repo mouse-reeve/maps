@@ -501,7 +501,11 @@ class Map {
         var river_detail = [];
         for (var r = 0; r < this.river.length - 1; r++) {
             var segment = [this.river[r], this.river[r + 1]];
-            river_detail = river_detail.concat(this.displace_midpoint(segment, 5, 0.5, 5));
+            river_detail = river_detail.concat(this.displace_midpoint(segment,
+                {offset_denominator: 5,
+                 offset_balance: 0.5,
+                 min_segment_length: 5}
+            ));
         }
         this.river = river_detail;
 
@@ -556,7 +560,8 @@ class Map {
         var end = this.find_axis_low(width - 1, height / 16, 1, height / 2);
 
         // follow the terrain using displaced midline algorithm
-        this.coastline = this.displace_midpoint([start, end], 5, 0.2, 10);
+        this.coastline = this.displace_midpoint([start, end], {
+            offset_denominator: 5, offset_balance: 0.2, min_segment_length: 10});
 
         // add the map's SE corner to complete the polygon
         this.coastline.push([width-1, height-1]);
@@ -648,21 +653,22 @@ class Map {
         return low[0];
     }
 
-    displace_midpoint(curve, offset_denominator, offset_balance, min_segment_length, i1, i2) {
+    displace_midpoint(curve, params) {
+        // params must have offset_denominator, offset_balance, and min_segment_length
         // recursive algorithm to fit a line to the lows on the elevation map
-        // offset_denominator controls how far the midpoint can vary
+        // params.offset_denominator controls how far the midpoint can vary
         // (higher denom -> less variation)
-        // offset_balance controls whether it prefers to look above or below
+        // params.offset_balance controls whether it prefers to look above or below
         // the line (useful for coastline); 0.5 is balanced
-        if (!i1 && !i2) {
+        if (!params.index_1 && !params.index_2) {
             // allow outside functions to call this with just the start/end points
-            i1 = 0;
-            i2 = 1;
+            params.index_1 = 0;
+            params.index_2 = 1;
         }
-        var start = curve[i1];
-        var end = curve[i2];
+        var start = curve[params.index_1];
+        var end = curve[params.index_2];
         var segment_length = Math.sqrt(Math.pow(end[0] - start[0], 2) + Math.pow(end[1] - start[1], 2));
-        if (segment_length < min_segment_length) {
+        if (segment_length < params.min_segment_length) {
             return curve;
         }
         var midpoint = [Math.round((start[0] + end[0]) / 2),
@@ -676,8 +682,8 @@ class Map {
 
         var low = [midpoint[0], midpoint[1], this.get_elevation(midpoint[0], midpoint[1])];
 
-        var offset = Math.round(segment_length / offset_denominator);
-        for (var i = offset * (0 - offset_balance); i < offset * (1 - offset_balance); i++) {
+        var offset = Math.round(segment_length / params.offset_denominator);
+        for (var i = offset * (0 - params.offset_balance); i < offset * (1 - params.offset_balance); i++) {
             var nx = Math.round(x + (i / Math.abs(i)) * Math.sqrt(i ** 2 / (1 + m ** 2)));
             y = Math.round((m * nx) + b);
             if (!this.on_map(nx, y)) {
@@ -690,9 +696,15 @@ class Map {
         }
         var displaced = [low[0], low[1]];
 
-        curve.splice(i2, 0, displaced);
-        curve = this.displace_midpoint(curve, offset_denominator, offset_balance, min_segment_length, i2, i2 + 1);
-        return this.displace_midpoint(curve, offset_denominator, offset_balance, min_segment_length, i1, i2);
+        curve.splice(params.index_2, 0, displaced);
+
+        // continue recursively with modified copies of the original params
+        var right_params = Object.assign({}, params);
+        right_params.index_1 = params.index_2;
+        right_params.index_2 = params.index_2 + 1;
+        curve = this.displace_midpoint(curve, right_params);
+
+        return this.displace_midpoint(curve, params);
     }
 
     on_map(x, y) {
