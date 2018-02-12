@@ -243,6 +243,7 @@ class Map {
         var min_angle = PI / 3;
         var options = Object.assign([], this.population_peaks);
         while (options.length) {
+            // TODO: this is such bad code, so very wet
             // draw a road from the city center to the closest maxima
             var road = options.slice(0, 1);
             options = options.slice(1);
@@ -263,6 +264,28 @@ class Map {
             if (next && next.distance < min_angle) {
                 road.splice(0, 0, next.match);
                 options.splice(next.index, 1);
+            }
+
+            if (!this.on_edge(road[road.length - 1][0], road[road.length - 1][1])) {
+                // but actually we want to take this line to the edge
+                // y = mx + b, m = dy/dx, b = y - mx
+                var m = (road[road.length - 1][1] - road[road.length - 2][1]) / (road[road.length - 1][0] - road[road.length - 2][0]);
+                var b = road[road.length - 1][1] - (m * road[road.length - 1][0]);
+                var direction = road[road.length - 2][1] < road[road.length - 1][1] ? 1 : -1;
+                var y = road[road.length - 1][1] + (direction * height); // this will always be off the page
+                var x = (y - b) / m;
+                road.push([x, y]);
+            }
+
+            if (!this.on_edge(road[0][0], road[0][1])) {
+                // but actually we want to take this line to the edge
+                // y = mx + b, m = dy/dx, b = y - mx
+                var m = (road[0][1] - road[1][1]) / (road[0][0] - road[1][0]);
+                var b = road[0][1] - (m * road[0][0]);
+                var direction = road[1][1] < road[0][1] ? 1 : -1;
+                var y = road[0][1] + (direction * height); // this will always be off the page
+                var x = (y - b) / m;
+                road.push([x, y]);
             }
 
             this.roads.push(road);
@@ -675,6 +698,10 @@ class Map {
     on_map(x, y) {
         // is the point on the map?
         return x >= 0 && y >= 0 && x < width && y < height;
+    }
+
+    on_edge(x, y) {
+        return x == 0 || y == 0 || x >= width - 1 || y >= height - 1;
     }
 
     create_matrix() {
