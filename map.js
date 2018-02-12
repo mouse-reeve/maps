@@ -653,6 +653,7 @@ class Map {
         return low[0];
     }
 
+
     displace_midpoint(curve, params) {
         // params must have offset_denominator, offset_balance, and min_segment_length
         // recursive algorithm to fit a line to the lows on the elevation map
@@ -680,21 +681,29 @@ class Map {
         var x = midpoint[0];
         var y;
 
-        var low = [midpoint[0], midpoint[1], this.get_elevation(midpoint[0], midpoint[1])];
-
+        var optimal = [midpoint[0], midpoint[1], this.get_elevation(midpoint[0], midpoint[1])];
         var offset = Math.round(segment_length / params.offset_denominator);
-        for (var i = offset * (0 - params.offset_balance); i < offset * (1 - params.offset_balance); i++) {
-            var nx = Math.round(x + (i / Math.abs(i)) * Math.sqrt(i ** 2 / (1 + m ** 2)));
-            y = Math.round((m * nx) + b);
-            if (!this.on_map(nx, y)) {
-                continue;
-            }
-            var elevation = this.get_elevation(nx, y);
-            if (elevation < low[2]) {
-                low = [nx, y, elevation];
+        var perpendicular_start = offset * (0 - params.offset_balance);
+        var perpendicular_end = offset * (1 - params.offset_balance);
+
+        // the default comparison operation is to check for the lowest elevation along the perpendicular path
+        if (!params.comparison) {
+            for (var i = perpendicular_start; i < perpendicular_end; i++) {
+                var nx = Math.round(x + (i / Math.abs(i)) * Math.sqrt(i ** 2 / (1 + m ** 2)));
+                y = Math.round((m * nx) + b);
+                if (!this.on_map(nx, y)) {
+                    continue;
+                }
+                var elevation = this.get_elevation(nx, y);
+                if (elevation < optimal[2]) {
+                    optimal = [nx, y, elevation];
+                }
             }
         }
-        var displaced = [low[0], low[1]];
+        else {
+            optimal = params.comparison(start, end, perpendicular_start, perpendicular_end, m, b);
+        }
+        var displaced = [optimal[0], optimal[1]];
 
         curve.splice(params.index_2, 0, displaced);
 
