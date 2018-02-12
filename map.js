@@ -285,7 +285,7 @@ class Map {
                 var direction = road[1][1] < road[0][1] ? 1 : -1;
                 var y = road[0][1] + (direction * height); // this will always be off the page
                 var x = (y - b) / m;
-                road.push([x, y]);
+                road.splice(0, 0, [x, y]);
             }
 
             this.roads.push(road);
