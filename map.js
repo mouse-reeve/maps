@@ -292,7 +292,43 @@ class Map {
         }
 
         var end_time = new Date();
-        console.log('highway', (end_time - start_time) / 1000)
+        console.log('main highway points', (end_time - start_time) / 1000)
+
+        var start_time = new Date();
+        var comparison = function (midpoint, start, end, perpendicular_start, perpendicular_end, m, b) {
+            if (!this.on_map(start[0], start[1]) || !this.on_map(end[0], end[1])) {
+                return midpoint;
+            }
+            var mean_elevation = (this.get_elevation(start[0], start[1]) + this.get_elevation(end[0], end[1])) / 2;
+            var optimal;
+            var x = midpoint[0];
+            for (var i = perpendicular_start; i < perpendicular_end; i++) {
+                var nx = Math.round(x + (i / Math.abs(i)) * Math.sqrt(i ** 2 / (1 + m ** 2)));
+                var y = Math.round((m * nx) + b);
+                if (!this.on_map(nx, y)) {
+                    continue;
+                }
+                var elevation_diff = Math.abs(mean_elevation - this.get_elevation(nx, y));
+                if (!optimal || elevation_diff < optimal[2]) {
+                    optimal = [nx, y, elevation_diff];
+                }
+            }
+            return optimal;
+        };
+        for (var r = 0; r < this.roads.length; r++) {
+            var new_road = [];
+            for (var i = 0; i < this.roads[r].length - 1; i++) {
+                new_road = new_road.concat(this.displace_midpoint([this.roads[r][i], this.roads[r][i+1]],
+                    {offset_denominator: 5,
+                     offset_balance: 0.5,
+                     min_segment_length: 20,
+                     comparison: comparison}
+                ));
+            }
+            this.roads[r] = new_road;
+        }
+        var end_time = new Date();
+        console.log('conforming highways to topography', (end_time - start_time) / 1000)
     }
 
     segment_id(p1, p2) {
@@ -701,7 +737,10 @@ class Map {
             }
         }
         else {
-            optimal = params.comparison(start, end, perpendicular_start, perpendicular_end, m, b);
+            optimal = params.comparison.call(this, midpoint, start, end, perpendicular_start, perpendicular_end, m, b);
+        }
+        if (!optimal) {
+            optimal = midpoint;
         }
         var displaced = [optimal[0], optimal[1]];
 
