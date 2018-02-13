@@ -65,12 +65,12 @@ class Map {
         this.add_roads();
 
         // ----- draw map ------------- \\
-        if (layer == 'topo') {
+        if (layer.indexOf('topo') > -1) {
             this.draw_topo();
-        } else if (layer == 'population') {
+        } else if (layer.indexOf('population') > -1) {
             this.draw_population();
-        } else if (layer == 'roads') {
-            this.draw_population();
+        }
+        if (layer.indexOf('roads') > -1) {
             this.draw_roads();
         }
 
