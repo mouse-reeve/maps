@@ -132,7 +132,7 @@ class Map {
         push();
         strokeWeight(5);
         for (var i = 0; i < this.roads.length; i++) {
-            stroke((i/this.roads.length) * 255);
+            stroke((i/this.roads.length) * 200);
             var road = this.roads[i];
             for (var j = 0; j < road.length - 1; j++) {
                 line(road[j][0], road[j][1], road[j + 1][0], road[j + 1][1]);
@@ -334,6 +334,47 @@ class Map {
                     this.roads[r][i + 1] = midpoint;
                 }
             }
+        }
+
+        // correct highways around ocean, rivers, multi-intersections
+        // don't drive into the sea
+        var needs_coastal_road = false;
+        var coastal_road = [];
+        for (var i = 1; i < this.coastline.length - 1; i += 5) {
+            coastal_road.push(this.coastline[i]);
+        }
+        /*if (coastal_road[coastal_road.length - 1][0] != this.coastline[this.coastline.length - 1][0] && coastal_road[coastal_road.length - 1][1] != this.coastline[this.coastline.length - 1][1]) {
+            coastal_road.push(this.coastline[this.coastline.length - 1]);
+        }*/
+
+        for (var r = 0; r < this.roads.length; r++) {
+            // test the direction of the road points
+            // reverse if the road runs E->W
+            if (road[0][0] > road[this.roads.length - 1][0]) {
+                this.roads[r] = this.roads[r].reverse();
+            }
+            var road = this.roads[r];
+            // check each triangle formed by road segments and move the center point if the angle is too severe
+            for (var i = 0; i < road.length; i++) {
+                var x = road[i][0];
+                var y = road[i][1];
+                if (this.on_map(x, y) && this.ocean[x][y]) {
+                    // go back one point
+                    // delete the remaining road
+                    road = road.slice(0, i);
+                    this.roads[r] = road;
+
+                    // end road on the coastline
+                    var closest_coast_point = this.get_best_fit(road[road.length - 1], this.coastline, this.get_distance);
+                    this.roads[r].push(closest_coast_point.match);
+                    needs_coastal_road = true;
+                    break;
+                }
+            }
+        }
+
+        if (needs_coastal_road) {
+            this.roads.push(coastal_road);
         }
 
         var end_time = new Date();
