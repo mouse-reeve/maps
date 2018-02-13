@@ -46,6 +46,7 @@ class Map {
         //this.elevation = data;
         this.elevation = this.create_matrix();
         this.coastline = [];
+        this.ocean = this.create_matrix();
         // tracks if the river succeeds
         this.has_river = true;
         this.river = [];
@@ -275,7 +276,6 @@ class Map {
                     road.splice(segment_indices[2], 0, [x, y]);
                 }
             }
-
             this.roads.push(road);
         }
 
@@ -661,7 +661,8 @@ class Map {
                 if (hits.length % 2 == 1) {
                     // set the depth of this field relative to the distance
                     // from the coastline
-                    this.elevation[x][y] -= (distance ** 2) / 50000;
+                    this.elevation[x][y] -= (distance ** 2) / 10000;
+                    this.ocean[x][y] = true;
                 }
             }
         }
