@@ -264,7 +264,7 @@ class Map {
                 }
 
                 var segment_indices = i == 0 ? [road.length - 2, road.length - 1, road.length] : [1, 0, 0];
-                if (!this.on_edge(road[segment_indices[0]][0], road[segment_indices[0]][1])) {
+                if (!this.on_edge(road[segment_indices[1]][0], road[segment_indices[1]][1])) {
                     // but actually we want to take this line to the edge
                     // y = mx + b, m = dy/dx, b = y - mx
                     var m = (road[segment_indices[1]][1] - road[segment_indices[0]][1]) / (road[segment_indices[1]][0] - road[segment_indices[0]][0]);
@@ -283,7 +283,9 @@ class Map {
         console.log('main highway points', (end_time - start_time) / 1000)
 
         var start_time = new Date();
+        // use midpoint displacement to fit the road to the levelest elevation path
         var comparison = function (midpoint, start, end, perpendicular_start, perpendicular_end, m, b) {
+            // function to pass into the midpoint function to compare elevation diffs
             if (!this.on_map(start[0], start[1]) || !this.on_map(end[0], end[1])) {
                 return midpoint;
             }
@@ -303,18 +305,37 @@ class Map {
             }
             return optimal;
         };
+        // add points between major road segments
         for (var r = 0; r < this.roads.length; r++) {
             var new_road = [];
             for (var i = 0; i < this.roads[r].length - 1; i++) {
-                new_road = new_road.concat(this.displace_midpoint([this.roads[r][i], this.roads[r][i+1]],
+                var new_segment = this.displace_midpoint([this.roads[r][i], this.roads[r][i+1]],
                     {offset_denominator: 5,
                      offset_balance: 0.5,
-                     min_segment_length: 20,
+                     min_segment_length: 60,
                      comparison: comparison}
-                ));
+                );
+                // slicing avoids duplicating edges
+                new_road = i == 0 ? new_road.concat(new_segment) : new_road.concat(new_segment.slice(1));
             }
             this.roads[r] = new_road;
         }
+
+        // smooth out road segment angles
+        for (var r = 0; r < this.roads.length; r++) {
+            // check each triangle formed by road segments and move the center point if the angle is too severe
+            for (var i = 0; i < this.roads[r].length - 2; i++) {
+                var angle = this.get_corner_angle(this.roads[r][i], this.roads[r][i + 1], this.roads[r][i + 2]);
+                if (angle < TWO_PI / 3) {
+                    // move the center point to the midpoint of p1 and p3
+                    var midpoint = [Math.round((this.roads[r][i][0] + this.roads[r][i + 2][0]) / 2),
+                                    Math.round((this.roads[r][i][1] + this.roads[r][i + 2][1]) / 2)];
+                    console.log(angle, this.roads[r][i + 1], midpoint);
+                    this.roads[r][i + 1] = midpoint;
+                }
+            }
+        }
+
         var end_time = new Date();
         console.log('conforming highways to topography', (end_time - start_time) / 1000)
     }
