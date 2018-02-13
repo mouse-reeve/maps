@@ -243,49 +243,37 @@ class Map {
         var min_angle = PI / 3;
         var options = Object.assign([], this.population_peaks);
         while (options.length) {
-            // TODO: this is such bad code, so very wet
             // draw a road from the city center to the closest maxima
             var road = options.slice(0, 1);
-            options = options.slice(1);
             // since population_peaks is in order of population density, the 0th entry is always city center
+            options = options.slice(1);
+
             var next = this.get_best_fit(road[0], options, this.get_distance);
             if (!next) break;
             road.push(next.match);
             options.splice(next.index, 1);
 
             // continue the road from both ends to the next point with as close to a 180degree angle as possible
-            next = this.get_best_fit([road[road.length - 2], road[road.length - 1]], options, fit_function);
-            if (next && next.distance < min_angle) {
-                road.push(next.match);
-                options.splice(next.index, 1);
-            }
+            for (var i = 0; i < 2; i++) {
+                var segment_indices = i == 0 ? [road.length - 2, road.length - 1, road.length] : [1, 0, 0];
 
-            next = this.get_best_fit([road[1], road[0]], options, fit_function);
-            if (next && next.distance < min_angle) {
-                road.splice(0, 0, next.match);
-                options.splice(next.index, 1);
-            }
+                next = this.get_best_fit([road[segment_indices[0]], road[segment_indices[1]]], options, fit_function);
+                if (next && next.distance < min_angle) {
+                    road.splice(segment_indices[2], 0, next.match);
+                    options.splice(next.index, 1);
+                }
 
-            if (!this.on_edge(road[road.length - 1][0], road[road.length - 1][1])) {
-                // but actually we want to take this line to the edge
-                // y = mx + b, m = dy/dx, b = y - mx
-                var m = (road[road.length - 1][1] - road[road.length - 2][1]) / (road[road.length - 1][0] - road[road.length - 2][0]);
-                var b = road[road.length - 1][1] - (m * road[road.length - 1][0]);
-                var direction = road[road.length - 2][1] < road[road.length - 1][1] ? 1 : -1;
-                var y = road[road.length - 1][1] + (direction * height); // this will always be off the page
-                var x = (y - b) / m;
-                road.push([x, y]);
-            }
-
-            if (!this.on_edge(road[0][0], road[0][1])) {
-                // but actually we want to take this line to the edge
-                // y = mx + b, m = dy/dx, b = y - mx
-                var m = (road[0][1] - road[1][1]) / (road[0][0] - road[1][0]);
-                var b = road[0][1] - (m * road[0][0]);
-                var direction = road[1][1] < road[0][1] ? 1 : -1;
-                var y = road[0][1] + (direction * height); // this will always be off the page
-                var x = (y - b) / m;
-                road.splice(0, 0, [x, y]);
+                var segment_indices = i == 0 ? [road.length - 2, road.length - 1, road.length] : [1, 0, 0];
+                if (!this.on_edge(road[segment_indices[0]][0], road[segment_indices[0]][1])) {
+                    // but actually we want to take this line to the edge
+                    // y = mx + b, m = dy/dx, b = y - mx
+                    var m = (road[segment_indices[1]][1] - road[segment_indices[0]][1]) / (road[segment_indices[1]][0] - road[segment_indices[0]][0]);
+                    var b = road[segment_indices[1]][1] - (m * road[segment_indices[1]][0]);
+                    var direction = road[segment_indices[0]][1] < road[segment_indices[1]][1] ? 1 : -1;
+                    var y = road[segment_indices[1]][1] + (direction * height); // this will always be off the page
+                    var x = (y - b) / m;
+                    road.splice(segment_indices[2], 0, [x, y]);
+                }
             }
 
             this.roads.push(road);
