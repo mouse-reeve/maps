@@ -343,15 +343,12 @@ class Map {
         for (var i = 1; i < this.coastline.length - 1; i += 5) {
             coastal_road.push(this.coastline[i]);
         }
-        /*if (coastal_road[coastal_road.length - 1][0] != this.coastline[this.coastline.length - 1][0] && coastal_road[coastal_road.length - 1][1] != this.coastline[this.coastline.length - 1][1]) {
-            coastal_road.push(this.coastline[this.coastline.length - 1]);
-        }*/
 
         for (var r = 0; r < this.roads.length; r++) {
             // test the direction of the road points
             // reverse if the road runs E->W
-            if (road[0][0] > road[this.roads.length - 1][0]) {
-                this.roads[r] = this.roads[r].reverse();
+            if (this.roads[r][0][0] > this.roads[r][this.roads[r].length - 1][0] && this.roads[r][0][1] > this.roads[r][this.roads[r].length - 1][1]) {
+                this.roads[r].reverse();
             }
             var road = this.roads[r];
             // check each triangle formed by road segments and move the center point if the angle is too severe
