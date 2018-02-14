@@ -50,6 +50,7 @@ class Map {
         // tracks if the river succeeds
         this.has_river = true;
         this.riverline = [];
+        this.river = this.create_matrix();
         //this.riverline = river_data;
         this.population_density = this.create_matrix();
         this.population_peaks = [];
@@ -306,6 +307,7 @@ class Map {
             }
             return optimal;
         };
+
         // add points between major road segments
         for (var r = 0; r < this.roads.length; r++) {
             var new_road = [];
@@ -316,7 +318,7 @@ class Map {
                      min_segment_length: 60,
                      comparison: comparison}
                 );
-                // slicing avoids duplicating edges
+                // slicing avoids duplicating nodes
                 new_road = i == 0 ? new_road.concat(new_segment) : new_road.concat(new_segment.slice(1));
             }
             this.roads[r] = new_road;
@@ -373,7 +375,7 @@ class Map {
                     }
                     for (var s2 = 0; s2 < this.roads[r2].length - 1; s2++) {
                         var intersection_id = this.segment_id(this.roads[r][s], this.roads[r2][s2]);
-                        if (this.segment_intersection(this.roads[r][s], this.roads[r][s + 1], this.roads[r2][s2], this.roads[r2][s2 + 1]) || used.indexOf(intersection_id) > -1) {
+                        if (this.segment_intersection(this.roads[r][s], this.roads[r][s + 1], this.roads[r2][s2], this.roads[r2][s2 + 1])) {
                             continue;
                         }
 
@@ -473,7 +475,7 @@ class Map {
                     continue
                 }
                 // distance from city center - closer means higher density
-                var distance = Math.sqrt(Math.pow(this.city_center[0] - x, 2) + Math.pow(this.city_center[1] - y, 2));
+                var distance = this.get_distance(this.city_center, [x, y]);
 
                 // higher number -> "zoom out"
                 var frequency = this.elevation_scale / width;
@@ -651,6 +653,9 @@ class Map {
                 // this starting distance is higher than the actual possible max
                 var match = this.get_best_fit([x, y], this.riverline, this.get_distance);
                 this.elevation[x][y] -= 4 / ((match.distance + 0.00001) ** 1.5);
+                if (this.get_elevation(x, y) < 0) {
+                    this.river[x][y] = true;
+                }
             }
         }
         var end_time = new Date();
