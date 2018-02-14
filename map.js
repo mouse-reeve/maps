@@ -330,7 +330,7 @@ class Map {
         // don't drive into the sea
         var needs_coastal_road = false;
         var coastal_road = [];
-        for (var i = 1; i < this.coastline.length - 1; i += 5) {
+        for (var i = 1; i < this.coastline.length - 1; i += 3) {
             coastal_road.push(this.coastline[i]);
         }
 
@@ -344,8 +344,7 @@ class Map {
                 var x = road[i][0];
                 var y = road[i][1];
                 if (this.on_map(x, y) && this.ocean[x][y]) {
-                    // go back one point
-                    // delete the remaining road
+                    // delete the follwing part of the road
                     road = road.slice(0, i);
                     this.roads[r] = road;
 
@@ -375,7 +374,6 @@ class Map {
                     for (var s2 = 0; s2 < this.roads[r2].length - 1; s2++) {
                         var intersection_id = this.segment_id(this.roads[r][s], this.roads[r2][s2]);
                         if (this.segment_intersection(this.roads[r][s], this.roads[r][s + 1], this.roads[r2][s2], this.roads[r2][s2 + 1]) || used.indexOf(intersection_id) > -1) {
-                            // ignore intersecting segments
                             continue;
                         }
 
