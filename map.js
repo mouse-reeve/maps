@@ -49,10 +49,9 @@ class Map {
         this.ocean = this.create_matrix();
         // tracks if the river succeeds
         this.has_river = true;
-        this.river = [];
-        //this.river = river_data;
+        this.riverline = [];
+        //this.riverline = river_data;
         this.population_density = this.create_matrix();
-        this.population_edges = [];
         this.population_peaks = [];
         this.roads = [];
     }
@@ -86,18 +85,20 @@ class Map {
 
         /* for debugging rivers
         push();
-        for (var i = 0; i < this.river.length; i++) {
-            fill((i/this.river.length) * 255);
-            ellipse(this.river[i][0], this.river[i][1], 10, 10);
+        for (var i = 0; i < this.riverline.length; i++) {
+            fill((i/this.riverline.length) * 255);
+            ellipse(this.riverline[i][0], this.riverline[i][1], 10, 10);
         }
         pop()
         */
+        /* for debugging neighborhoods
         push();
         for (var i = 0; i < this.population_peaks.length; i++) {
             fill((i/this.population_peaks.length) * 255);
             ellipse(this.population_peaks[i][0], this.population_peaks[i][1], 10, 10);
         }
         pop()
+        */
 
         this.compass_rose();
         this.draw_scale();
@@ -362,7 +363,6 @@ class Map {
             this.roads.splice(0, 0, coastal_road);
         }
 
-        var used = [];
         // check for roads that are too close together
         var distance_threshold = 40;
         for (var r = 0; r < this.roads.length; r++) {
@@ -381,8 +381,6 @@ class Map {
                         var distance = this.get_distance(this.roads[r][s], this.roads[r2][s2]);
                         if (distance < distance_threshold) {
                             var alt_intersection_id = this.segment_id(this.roads[r2][s2], this.roads[r][s]);
-                            //used.push(intersection_id);
-                            //used.push(alt_intersection_id);
                             // connect the two roads
                             this.roads[r2].splice(s2);
                             this.roads[r2].push(this.roads[r][s]);
@@ -406,7 +404,6 @@ class Map {
                 // move the center point to the midpoint of p1 and p3
                 var midpoint = [Math.round((curve[i][0] + curve[i + 2][0]) / 2),
                                 Math.round((curve[i][1] + curve[i + 2][1]) / 2)];
-                console.log(angle, curve[i + 1], midpoint);
                 curve[i + 1] = midpoint;
             }
         }
@@ -499,7 +496,7 @@ class Map {
                 // adding 0.00001 prevents the exact city center point from being infinite
                 noise_value = noise_value * ((longest / (distance + 0.00001)) * 0.45);
 
-                //var river_distance = this.get_best_fit([x, y], this.river, this.get_distance)
+                //var river_distance = this.get_best_fit([x, y], this.riverline, this.get_distance)
                 //noise_value -= 4 / (river_distance ** 1.5);
 
                 this.population_density[x][y] = noise_value;
@@ -552,7 +549,7 @@ class Map {
         // adds a river that runs from the NW corner
         var segment_length = 50;
         var start = this.find_axis_low(0, 0, 1, height / 2);
-        this.river = [start, [start[0] + 1, start[1]]];
+        this.riverline = [start, [start[0] + 1, start[1]]];
 
         // use graded elevation
         this.real_elevation = this.get_elevation;
@@ -564,22 +561,22 @@ class Map {
         while (i < max_points) {
             // define a 2PI/3 degree arc "line of sight" from the previous point
             var vision_range = TWO_PI / 3;
-            var start_angle = PI + atan2((this.river[i][1] - this.river[i - 1][1]), (this.river[i][0] - this.river[i - 1][0])) + vision_range;
+            var start_angle = PI + atan2((this.riverline[i][1] - this.riverline[i - 1][1]), (this.riverline[i][0] - this.riverline[i - 1][0])) + vision_range;
 
             var lowest = [[], height * width];
             // evaluate every point on the arc for the lowest elevation
             for (var a = start_angle; a < start_angle + vision_range; a += PI / 20) {
-                var sx = Math.round(this.river[i][0] + (segment_length * cos(a)));
-                var sy = Math.round(this.river[i][1] + (segment_length * sin(a)));
+                var sx = Math.round(this.riverline[i][0] + (segment_length * cos(a)));
+                var sy = Math.round(this.riverline[i][1] + (segment_length * sin(a)));
 
                 if (this.on_map(sx, sy) && this.get_elevation(sx, sy) < lowest[1]) {
                     // check for self-intersection
                     var intersecting = false;
                     // these look 3x further ahead to check for intersection
-                    var ix = Math.round(this.river[i][0] + (3 * segment_length * cos(a)));
-                    var iy = Math.round(this.river[i][1] + (3 * segment_length * sin(a)));
-                    for (var r = 0; r < this.river.length - 2; r++) {
-                        if (this.segment_intersection(this.river[i], [ix, iy], this.river[r], this.river[r + 1])) {
+                    var ix = Math.round(this.riverline[i][0] + (3 * segment_length * cos(a)));
+                    var iy = Math.round(this.riverline[i][1] + (3 * segment_length * sin(a)));
+                    for (var r = 0; r < this.riverline.length - 2; r++) {
+                        if (this.segment_intersection(this.riverline[i], [ix, iy], this.riverline[r], this.riverline[r + 1])) {
                             intersecting = true;
                             break;
                         }
@@ -593,7 +590,7 @@ class Map {
             if (lowest[0].length == 0) {
                 break;
             }
-            this.river.push(lowest[0]);
+            this.riverline.push(lowest[0]);
 
             // stop if the river hits the ocean or the edge of the map
             if (this.get_elevation(lowest[0][0], lowest[0][1]) < 0 ||
@@ -602,7 +599,7 @@ class Map {
                     (sy < segment_length * 0.3 && i > 15)) {
                 success = true;
                 // make sure the river hits the end of the map
-                this.river.push([sx + segment_length, sy + segment_length]);
+                this.riverline.push([sx + segment_length, sy + segment_length]);
                 break;
             }
             i++;
@@ -617,22 +614,22 @@ class Map {
         var start_time = new Date();
         // place points between the current path
         var river_detail = [];
-        for (var r = 0; r < this.river.length - 1; r++) {
-            var segment = [this.river[r], this.river[r + 1]];
+        for (var r = 0; r < this.riverline.length - 1; r++) {
+            var segment = [this.riverline[r], this.riverline[r + 1]];
             river_detail = river_detail.concat(this.displace_midpoint(segment,
                 {offset_denominator: 5,
                  offset_balance: 0.5,
                  min_segment_length: 5}
             ));
         }
-        this.river = river_detail;
+        this.riverline = river_detail;
 
         // store min/max coords
         var max_x;
         var min_y;
         var max_y;
-        for (var i = 0; i < this.river.length; i++) {
-            var point = this.river[i];
+        for (var i = 0; i < this.riverline.length; i++) {
+            var point = this.riverline[i];
             if (max_x == undefined || point[0] > max_x) {
                 max_x = Math.round(point[0]);
             }
@@ -652,13 +649,8 @@ class Map {
         for (var y = min_y - radius; y < (max_y + radius) && y < height; y++) {
             for (var x = 0; x < (max_x + radius) && x < width; x++) {
                 // this starting distance is higher than the actual possible max
-                var distance = Math.pow(height, 2) + Math.pow(width, 2);
-                // check how far this point is from any river segment
-                for (var j = 0; j < this.river.length; j++) {
-                    var h_distance = Math.sqrt(Math.pow(this.river[j][0] - x, 2) + Math.pow(this.river[j][1] - y, 2));
-                    distance = h_distance < distance ? h_distance : distance;
-                }
-                this.elevation[x][y] -= 4 / ((distance + 0.00001) ** 1.5);
+                var match = this.get_best_fit([x, y], this.riverline, this.get_distance);
+                this.elevation[x][y] -= 4 / ((match.distance + 0.00001) ** 1.5);
             }
         }
         var end_time = new Date();
