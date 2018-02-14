@@ -323,17 +323,7 @@ class Map {
 
         // smooth out road segment angles
         for (var r = 0; r < this.roads.length; r++) {
-            // check each triangle formed by road segments and move the center point if the angle is too severe
-            for (var i = 0; i < this.roads[r].length - 2; i++) {
-                var angle = this.get_corner_angle(this.roads[r][i], this.roads[r][i + 1], this.roads[r][i + 2]);
-                if (angle < TWO_PI / 3) {
-                    // move the center point to the midpoint of p1 and p3
-                    var midpoint = [Math.round((this.roads[r][i][0] + this.roads[r][i + 2][0]) / 2),
-                                    Math.round((this.roads[r][i][1] + this.roads[r][i + 2][1]) / 2)];
-                    console.log(angle, this.roads[r][i + 1], midpoint);
-                    this.roads[r][i + 1] = midpoint;
-                }
-            }
+            this.roads[r] = this.smooth_curve(this.roads[r], TWO_PI / 3);
         }
 
         // correct highways around ocean, rivers, multi-intersections
@@ -345,13 +335,11 @@ class Map {
         }
 
         for (var r = 0; r < this.roads.length; r++) {
-            // test the direction of the road points
-            // reverse if the road runs E->W
+            // reverse roads if they run E->W
             if (this.roads[r][0][0] > this.roads[r][this.roads[r].length - 1][0] && this.roads[r][0][1] > this.roads[r][this.roads[r].length - 1][1]) {
                 this.roads[r].reverse();
             }
             var road = this.roads[r];
-            // check each triangle formed by road segments and move the center point if the angle is too severe
             for (var i = 0; i < road.length; i++) {
                 var x = road[i][0];
                 var y = road[i][1];
@@ -371,11 +359,60 @@ class Map {
         }
 
         if (needs_coastal_road) {
-            this.roads.push(coastal_road);
+            coastal_road = this.smooth_curve(coastal_road);
+            this.roads.splice(0, 0, coastal_road);
+        }
+
+        var used = [];
+        // check for roads that are too close together
+        var distance_threshold = 40;
+        for (var r = 0; r < this.roads.length; r++) {
+            for (var s = 0; s < this.roads[r].length - 1; s++) {
+                for (var r2 = 0; r2 < this.roads.length; r2++) {
+                    if (r == r2) {
+                        continue;
+                    }
+                    for (var s2 = 0; s2 < this.roads[r2].length - 1; s2++) {
+                        var intersection_id = this.segment_id(this.roads[r][s], this.roads[r2][s2]);
+                        if (this.segment_intersection(this.roads[r][s], this.roads[r][s + 1], this.roads[r2][s2], this.roads[r2][s2 + 1]) || used.indexOf(intersection_id) > -1) {
+                            // ignore intersecting segments
+                            continue;
+                        }
+
+                        // get the distance between the line segments
+                        var distance = this.get_distance(this.roads[r][s], this.roads[r2][s2]);
+                        if (distance < distance_threshold) {
+                            var alt_intersection_id = this.segment_id(this.roads[r2][s2], this.roads[r][s]);
+                            //used.push(intersection_id);
+                            //used.push(alt_intersection_id);
+                            // connect the two roads
+                            this.roads[r2].splice(s2);
+                            this.roads[r2].push(this.roads[r][s]);
+                            break;
+                        }
+                    }
+                }
+            }
+            break;
         }
 
         var end_time = new Date();
         console.log('conforming highways to topography', (end_time - start_time) / 1000)
+    }
+
+    smooth_curve(curve, min_angle) {
+        // check each triangle formed by road segments and move the center point if the angle is too severe
+        for (var i = 0; i < curve.length - 2; i++) {
+            var angle = this.get_corner_angle(curve[i], curve[i + 1], curve[i + 2]);
+            if (angle < min_angle) {
+                // move the center point to the midpoint of p1 and p3
+                var midpoint = [Math.round((curve[i][0] + curve[i + 2][0]) / 2),
+                                Math.round((curve[i][1] + curve[i + 2][1]) / 2)];
+                console.log(angle, curve[i + 1], midpoint);
+                curve[i + 1] = midpoint;
+            }
+        }
+        return curve;
     }
 
     segment_id(p1, p2) {
