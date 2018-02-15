@@ -92,14 +92,14 @@ class Map {
         }
         pop()
         */
-        /* for debugging neighborhoods
+        // for debugging neighborhoods
         push();
         for (var i = 0; i < this.population_peaks.length; i++) {
             fill((i/this.population_peaks.length) * 255);
             ellipse(this.population_peaks[i][0], this.population_peaks[i][1], 10, 10);
         }
         pop()
-        */
+        //
 
         this.compass_rose();
         this.draw_scale();
@@ -245,14 +245,29 @@ class Map {
         var start_time = new Date();
         var min_angle = PI / 3;
         var options = Object.assign([], this.population_peaks);
+
+        var filter_highway_options = function (point, options) {
+            if (this.on_edge(point[0], point[1])) {
+                for (var i = 0; i < options.length; i++) {
+                    if (this.on_edge(options[i][0], options[i][1]) && (point[0] == options[i][0] || point[1] == options[i][1])) {
+                        delete options[i];
+                    }
+                }
+            }
+            return options;
+        }
+
         while (options.length) {
             // draw a road from the city center to the closest maxima
             var road = options.slice(0, 1);
             // since population_peaks is in order of population density, the 0th entry is always city center
             options = options.slice(1);
 
-            var next = this.get_best_fit(road[0], options, this.get_distance);
+            //var local_options = Object.assign([], options);
+            var local_options = filter_highway_options.call(this, road[0], options);
+            var next = this.get_best_fit(road[0], local_options, this.get_distance);
             if (!next) break;
+
             road.push(next.match);
             options.splice(next.index, 1);
 
@@ -260,7 +275,8 @@ class Map {
             for (var i = 0; i < 2; i++) {
                 var segment_indices = i == 0 ? [road.length - 2, road.length - 1, road.length] : [1, 0, 0];
 
-                next = this.get_best_fit([road[segment_indices[0]], road[segment_indices[1]]], options, fit_function);
+                local_options = filter_highway_options.call(this, road[0], options);
+                next = this.get_best_fit([road[segment_indices[0]], road[segment_indices[1]]], local_options, fit_function);
                 if (next && next.distance < min_angle) {
                     road.splice(segment_indices[2], 0, next.match);
                     options.splice(next.index, 1);
