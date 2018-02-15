@@ -349,9 +349,11 @@ class Map {
         // don't drive into the sea
         var needs_coastal_road = false;
         var coastal_road = [];
-        for (var i = 1; i < this.coastline.length - 1; i += 3) {
+        for (var i = 1; i < this.coastline.length - 2; i += 3) {
             coastal_road.push(this.coastline[i]);
         }
+        // always add the last point so that the roads terminated at map edge
+        coastal_road.push(this.coastline[this.coastline.length - 2]);
 
         for (var r = 0; r < this.roads.length; r++) {
             // reverse roads if they run E->W
