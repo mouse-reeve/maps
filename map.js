@@ -1,5 +1,7 @@
 var black;
 var white;
+var step;
+var perterbation;
 
 function setup() {
     var container = document.getElementById('map');
@@ -14,6 +16,8 @@ function setup() {
     }
     var seed = params.seed || Math.floor(Math.random() * 10000);
     var layer = params.layer || 'topo';
+    step = params.step || 50;
+    perterbation = params.perterbation || 0;
     console.log(seed)
 
     black = color(0);
@@ -43,7 +47,6 @@ class Map {
         this.elevation_noisiness = 3; // increase for less smooth elevation boundaries
 
         // ----- Map components ------------\\
-        //this.elevation = data;
         this.elevation = this.create_matrix();
         this.coastline = [];
         this.ocean = this.create_matrix();
@@ -51,7 +54,6 @@ class Map {
         this.has_river = true;
         this.riverline = [];
         this.river = this.create_matrix();
-        //this.riverline = river_data;
         this.population_density = this.create_matrix();
         this.population_peaks = [];
         this.roads = [];
@@ -59,10 +61,14 @@ class Map {
 
     draw_map(layer) {
         // ----- compute elements ----- \\
+        /*
         this.add_elevation();
         this.add_ocean();
         this.add_river();
         this.add_population_density();
+        */
+        this.elevation = data;
+        this.riverline = river_data;
         this.add_roads();
 
         // ----- draw map ------------- \\
@@ -132,7 +138,7 @@ class Map {
 
     draw_roads() {
         push();
-        strokeWeight(5);
+        strokeWeight(3);
         for (var i = 0; i < this.roads.length; i++) {
             stroke((i/this.roads.length) * 200);
             var road = this.roads[i];
@@ -238,196 +244,81 @@ class Map {
     }
 
     add_roads() {
-        // attempt to place reasonable looking major and minor streets on the map
-        var fit_function = function(point, line) {
-            return Math.abs(PI - this.get_corner_angle(line[0], line[1], point) % TWO_PI);
-        }
         var start_time = new Date();
-        var min_angle = PI / 3;
-        var options = Object.assign([], this.population_peaks);
 
-        var filter_highway_options = function (point, options) {
-            if (this.on_edge(point[0], point[1])) {
-                for (var i = 0; i < options.length; i++) {
-                    if (this.on_edge(options[i][0], options[i][1]) && (point[0] == options[i][0] || point[1] == options[i][1])) {
-                        delete options[i];
-                    }
-                }
-            }
-            return options;
-        }
-
-        while (options.length) {
-            // draw a road from the city center to the closest maxima
-            var road = options.slice(0, 1);
-            // since population_peaks is in order of population density, the 0th entry is always city center
-            options = options.slice(1);
-
-            //var local_options = Object.assign([], options);
-            var local_options = filter_highway_options.call(this, road[0], options);
-            var next = this.get_best_fit(road[0], local_options, this.get_distance);
-            if (!next) break;
-
-            road.push(next.match);
-            options.splice(next.index, 1);
-
-            // continue the road from both ends to the next point with as close to a 180degree angle as possible
-            for (var i = 0; i < 2; i++) {
-                var segment_indices = i == 0 ? [road.length - 2, road.length - 1, road.length] : [1, 0, 0];
-
-                local_options = filter_highway_options.call(this, road[0], options);
-                next = this.get_best_fit([road[segment_indices[0]], road[segment_indices[1]]], local_options, fit_function);
-                if (next && next.distance < min_angle) {
-                    road.splice(segment_indices[2], 0, next.match);
-                    options.splice(next.index, 1);
-                }
-
-                var segment_indices = i == 0 ? [road.length - 2, road.length - 1, road.length] : [1, 0, 0];
-                if (!this.on_edge(road[segment_indices[1]][0], road[segment_indices[1]][1])) {
-                    // but actually we want to take this line to the edge
-                    // y = mx + b, m = dy/dx, b = y - mx
-                    var m = (road[segment_indices[1]][1] - road[segment_indices[0]][1]) / (road[segment_indices[1]][0] - road[segment_indices[0]][0]);
-                    var b = road[segment_indices[1]][1] - (m * road[segment_indices[1]][0]);
-                    var direction = road[segment_indices[0]][1] < road[segment_indices[1]][1] ? 1 : -1;
-                    var y = road[segment_indices[1]][1] + (direction * height); // this will always be off the page
-                    var x = (y - b) / m;
-                    road.splice(segment_indices[2], 0, [x, y]);
-                }
-            }
-            this.roads.push(road);
-        }
+        //this.roads.push(this.continue_road([[0, 0], [1, 1]], 1));
+        var road = [[5, 5], [6, 6]];
+        this.roads.push(road);
+        this.continue_road(road, 1);
 
         var end_time = new Date();
-        console.log('main highway points', (end_time - start_time) / 1000)
-
-        var start_time = new Date();
-        // use midpoint displacement to fit the road to the levelest elevation path
-        var comparison = function (midpoint, start, end, perpendicular_start, perpendicular_end, m, b) {
-            // function to pass into the midpoint function to compare elevation diffs
-            if (!this.on_map(start[0], start[1]) || !this.on_map(end[0], end[1])) {
-                return midpoint;
-            }
-            var mean_elevation = (this.get_elevation(start[0], start[1]) + this.get_elevation(end[0], end[1])) / 2;
-            var optimal;
-            var x = midpoint[0];
-            for (var i = perpendicular_start; i < perpendicular_end; i++) {
-                var nx = Math.round(x + (i / Math.abs(i)) * Math.sqrt(i ** 2 / (1 + m ** 2)));
-                var y = Math.round((m * nx) + b);
-                if (!this.on_map(nx, y)) {
-                    continue;
-                }
-                var elevation_diff = Math.abs(mean_elevation - this.get_elevation(nx, y));
-                if (!optimal || elevation_diff < optimal[2]) {
-                    optimal = [nx, y, elevation_diff];
-                }
-            }
-            return optimal;
-        };
-
-        // add points between major road segments
-        for (var r = 0; r < this.roads.length; r++) {
-            var new_road = [];
-            for (var i = 0; i < this.roads[r].length - 1; i++) {
-                var new_segment = this.displace_midpoint([this.roads[r][i], this.roads[r][i+1]],
-                    {offset_denominator: 5,
-                     offset_balance: 0.5,
-                     min_segment_length: 60,
-                     comparison: comparison}
-                );
-                // slicing avoids duplicating nodes
-                new_road = i == 0 ? new_road.concat(new_segment) : new_road.concat(new_segment.slice(1));
-            }
-            this.roads[r] = new_road;
-        }
-
-        // smooth out road segment angles
-        for (var r = 0; r < this.roads.length; r++) {
-            this.roads[r] = this.smooth_curve(this.roads[r], TWO_PI / 3);
-        }
-
-        // correct highways around ocean, rivers, multi-intersections
-        // don't drive into the sea
-        var needs_coastal_road = false;
-        var coastal_road = [];
-        for (var i = 1; i < this.coastline.length - 2; i += 3) {
-            coastal_road.push(this.coastline[i]);
-        }
-        // always add the last point so that the roads terminated at map edge
-        coastal_road.push(this.coastline[this.coastline.length - 2]);
-
-        for (var r = 0; r < this.roads.length; r++) {
-            // reverse roads if they run E->W
-            if (this.roads[r][0][0] > this.roads[r][this.roads[r].length - 1][0] && this.roads[r][0][1] > this.roads[r][this.roads[r].length - 1][1]) {
-                this.roads[r].reverse();
-            }
-            var road = this.roads[r];
-            for (var i = 0; i < road.length; i++) {
-                var x = road[i][0];
-                var y = road[i][1];
-                if (this.on_map(x, y) && this.ocean[x][y]) {
-                    // delete the follwing part of the road
-                    road = road.slice(0, i);
-                    this.roads[r] = road;
-
-                    // end road on the coastline
-                    var closest_coast_point = this.get_best_fit(road[road.length - 1], this.coastline, this.get_distance);
-                    this.roads[r].push(closest_coast_point.match);
-                    needs_coastal_road = true;
-                    break;
-                }
-            }
-        }
-
-        if (needs_coastal_road) {
-            coastal_road = this.smooth_curve(coastal_road);
-            this.roads.splice(0, 0, coastal_road);
-        }
-
-        // check for roads that are too close together
-        var distance_threshold = 40;
-        for (var r = 0; r < this.roads.length; r++) {
-            for (var s = 0; s < this.roads[r].length - 1; s++) {
-                for (var r2 = 0; r2 < this.roads.length; r2++) {
-                    if (r == r2) {
-                        continue;
-                    }
-                    for (var s2 = 0; s2 < this.roads[r2].length - 1; s2++) {
-                        var intersection_id = this.segment_id(this.roads[r][s], this.roads[r2][s2]);
-                        if (this.segment_intersection(this.roads[r][s], this.roads[r][s + 1], this.roads[r2][s2], this.roads[r2][s2 + 1])) {
-                            continue;
-                        }
-
-                        // get the distance between the line segments
-                        var distance = this.get_distance(this.roads[r][s], this.roads[r2][s2]);
-                        if (distance < distance_threshold) {
-                            var alt_intersection_id = this.segment_id(this.roads[r2][s2], this.roads[r][s]);
-                            // connect the two roads
-                            this.roads[r2].splice(s2);
-                            this.roads[r2].push(this.roads[r][s]);
-                            break;
-                        }
-                    }
-                }
-            }
-            break;
-        }
-
-        var end_time = new Date();
-        console.log('conforming highways to topography', (end_time - start_time) / 1000)
+        console.log('adding roads', (end_time - start_time) / 1000)
     }
 
-    smooth_curve(curve, min_angle) {
-        // check each triangle formed by road segments and move the center point if the angle is too severe
-        for (var i = 0; i < curve.length - 2; i++) {
-            var angle = this.get_corner_angle(curve[i], curve[i + 1], curve[i + 2]);
-            if (angle < min_angle) {
-                // move the center point to the midpoint of p1 and p3
-                var midpoint = [Math.round((curve[i][0] + curve[i + 2][0]) / 2),
-                                Math.round((curve[i][1] + curve[i + 2][1]) / 2)];
-                curve[i + 1] = midpoint;
+    continue_road(road, count) {
+        if (count > step) {
+            return ;//road;
+        }
+        // add to and/or fork off new road roads
+        var angle_variance = perterbation;
+
+        var penultimate = road.length - 2;
+        var ultimate = road.length - 1;
+
+        // ----- continue the road
+        var segment_length = 50;
+        var theta = atan2(road[ultimate][1] - road[penultimate][1], road[ultimate][0] - road[penultimate][0]);
+        theta += random(-1 * angle_variance, angle_variance);
+        var next = this.next_road_segment(road[ultimate], segment_length, theta);
+
+        // terminate roads that are in water or off the map
+        if (!this.validate_road_point([road[ultimate], [next[0], next[1]]])) {
+            return //road;
+        }
+        road.push([next[0], next[1]]);
+        this.continue_road(road, count + 1);
+
+        // ----- branch from the road in both directions
+        for (var i = -1; i <= 1; i += 2) {
+            // perpendicular slope
+            var perpendicular_theta = theta + (i * HALF_PI);
+            var next = this.next_road_segment(road[ultimate], segment_length, perpendicular_theta);
+            if (this.validate_road_point([road[ultimate], [next[0], next[1]]])) {
+                var fork = [road[ultimate], [next[0], next[1]]];
+                this.roads.push(fork);
+                this.continue_road(fork, count + 1);
             }
         }
-        return curve;
+        return road
+    }
+
+    next_road_segment(point, distance, theta) {
+        var x = point[0] + distance * cos(theta);
+        var y = point[1] + distance * sin(theta);
+        return [x, y]
+    }
+
+    validate_road_point(segment) {
+        var x = segment[1][0];
+        var y = segment[1][1];
+        if (this.is_water(x, y) || !this.on_map(x, y)) {
+            return false;
+        }
+        var distance_threshold = 4;
+        for (var r = 0; r < this.roads.length; r++) {
+            // check for intersection
+            for (var s = 0; s < this.roads[r].length - 1; s++) {
+               if (this.segment_intersection(this.roads[r][s], this.roads[r][s + 1], segment[0], segment[1])) {
+                   return false;
+               }
+            }
+            /*
+            var match = this.get_best_fit([x, y], this.roads[r], this.get_distance);
+            if (match.distance < distance_threshold) {
+                return false;
+            }*/
+        }
+        return true;
     }
 
     segment_id(p1, p2) {
@@ -450,6 +341,7 @@ class Map {
     }
 
     get_best_fit(point, options, fit_function) {
+        // compare a point to a set of other points to find the best fit
         var closest;
         for (var i = 0; i < options.length; i++) {
             var option = options[i];
@@ -760,6 +652,11 @@ class Map {
 
     segment_intersection(p1, p2, p3, p4) {
         // check if two line segments intersect
+        var threshold = 1;
+        if (this.get_distance(p2, p3) < threshold) {
+            return false;
+        }
+
         var ccw = this.counterclockwise;
         return ccw(p1, p3, p4) != ccw(p2, p3, p4) && ccw(p1, p2, p3) != ccw(p1, p2, p4);
     }
