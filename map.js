@@ -65,8 +65,8 @@ class Map {
         this.add_elevation();
         this.add_ocean();
         this.add_river();
-        this.add_population_density();
         */
+        this.add_population_density();
         this.elevation = data;
         this.riverline = river_data;
         this.add_roads();
@@ -245,30 +245,30 @@ class Map {
 
     add_roads() {
         var start_time = new Date();
-
-        //this.roads.push(this.continue_road([[0, 0], [1, 1]], 1));
-        var road = [[5, 5], [6, 6]];
+        var road = [[5, height - 5], [5, height - 6]];
         this.roads.push(road);
-        this.continue_road(road, 1);
+        this.continue_road(road, 50);
 
         var end_time = new Date();
         console.log('adding roads', (end_time - start_time) / 1000)
     }
 
-    continue_road(road, count) {
-        if (count > step) {
-            return ;//road;
+    continue_road(road, segment_length, count) {
+        if (count == undefined) count = 1;
+
+        if (count > step || segment_length < 5) {
+            return;
         }
         // add to and/or fork off new road roads
-        var angle_variance = perterbation;
+        var road_perterbation = perterbation;
+        var fork_perterbation = perterbation * 2;
 
         var penultimate = road.length - 2;
         var ultimate = road.length - 1;
 
         // ----- continue the road
-        var segment_length = 50;
         var theta = atan2(road[ultimate][1] - road[penultimate][1], road[ultimate][0] - road[penultimate][0]);
-        theta += random(-1 * angle_variance, angle_variance);
+        theta += random(-1 * road_perterbation, road_perterbation);
         var next = this.next_road_segment(road[ultimate], segment_length, theta);
 
         // terminate roads that are in water or off the map
@@ -276,17 +276,17 @@ class Map {
             return //road;
         }
         road.push([next[0], next[1]]);
-        this.continue_road(road, count + 1);
+        this.continue_road(road, segment_length, count + 1);
 
         // ----- branch from the road in both directions
         for (var i = -1; i <= 1; i += 2) {
             // perpendicular slope
-            var perpendicular_theta = theta + (i * HALF_PI);
+            var perpendicular_theta = theta + (i * HALF_PI) + random(-1 * fork_perterbation, fork_perterbation);
             var next = this.next_road_segment(road[ultimate], segment_length, perpendicular_theta);
             if (this.validate_road_point([road[ultimate], [next[0], next[1]]])) {
                 var fork = [road[ultimate], [next[0], next[1]]];
                 this.roads.push(fork);
-                this.continue_road(fork, count + 1);
+                this.continue_road(fork, segment_length * 0.7, count + 1);
             }
         }
         return road
