@@ -1,7 +1,5 @@
 var black;
 var white;
-var step;
-var perterbation;
 
 function setup() {
     var container = document.getElementById('map');
@@ -16,21 +14,19 @@ function setup() {
     }
     var seed = params.seed || Math.floor(Math.random() * 10000);
     var layer = params.layer || 'topo';
-    step = int(params.step) || 50;
-    perterbation = float(params.perterbation) || 0;
     console.log(seed)
 
     black = color(0);
     white = color(255);
 
-    var map = new Map(seed);
+    var map = new Map(seed, params);
     map.draw_map(layer);
 
     noLoop();
 }
 
 class Map {
-    constructor(seed) {
+    constructor(seed, params) {
         seed = seed || (new Date).getTime();
         randomSeed(seed);
 
@@ -45,6 +41,13 @@ class Map {
         this.elevation_range = 1.5; // increase for a smaller elevation range
         this.elevation_scale = 3; // increase for more variation in elevation across the map
         this.elevation_noisiness = 3; // increase for less smooth elevation boundaries
+
+        // roads
+        this.snap_radius = int(params.snap || 6);
+        this.min_segment_length = params.min || 5;
+        this.max_segment_length = params.max || 50;
+        this.perterbation = float(params.perterbation || 0);
+        this.step = params.step || 50;
 
         // ----- Map components ------------\\
         this.elevation = this.create_matrix();
@@ -249,7 +252,7 @@ class Map {
             for (var j = -1; j <= 1; j += 2) {
                 var road = [this.city_center, [this.city_center[0] + i, this.city_center[1] + j]];
                 this.roads.push(road);
-                this.continue_road(road, 50);
+                this.continue_road(road, this.max_segment_length);
             }
         }
 
@@ -260,43 +263,49 @@ class Map {
     continue_road(road, segment_length, count) {
         if (count == undefined) count = 1;
 
-        if (count > step || segment_length < 5) {
+        if (count > this.step || segment_length < this.min_segment_length) {
             return;
         }
         // add to and/or fork off new road roads
-        var road_perterbation = perterbation;
-        var fork_perterbation = perterbation / 2;
+        var road_perterbation = this.perterbation;
+        var fork_perterbation = this.perterbation / 2;
 
         var penultimate = road.length - 2;
         var ultimate = road.length - 1;
 
         // ----- continue the road
         var theta = atan2(road[ultimate][1] - road[penultimate][1], road[ultimate][0] - road[penultimate][0]);
-        var next = this.next_road_segment(road[ultimate], segment_length, theta, perterbation);
+        var next = this.next_road_segment(road[ultimate], segment_length, theta, road_perterbation);
 
         // terminate roads that are in water or off the map
-        if (!next) {
+        if (!next.match) {
             return;
         }
-        road.push([next[0], next[1]]);
-        this.continue_road(road, segment_length, count + 1);
+        road.push(next.match);
+        if (!next.end) {
+            this.continue_road(road, segment_length, count + 1);
+        }
 
         // ----- branch from the road in both directions
         for (var i = -1; i <= 1; i += 2) {
             // perpendicular slope
             var perpendicular_theta = theta + (i * HALF_PI);
-            var next = this.next_road_segment(road[ultimate], segment_length, perpendicular_theta, perterbation);
-            if (next) {
-                var fork = [road[ultimate], [next[0], next[1]]];
+            var next = this.next_road_segment(road[ultimate], segment_length, perpendicular_theta, fork_perterbation);
+            if (next.match) {
+                var fork = [road[ultimate], next.match];
                 this.roads.push(fork);
-                this.continue_road(fork, segment_length * 0.7, count + 1);
+                if (!next.end) {
+                    this.continue_road(fork, segment_length * 0.7, count + 1);
+                }
             }
         }
         return road
     }
 
     next_road_segment(point, distance, theta, perterbation) {
-        var options = [];
+        // find a suitable continuation point
+
+        var options = []
         for (var a = theta - perterbation; a <= theta + perterbation; a += PI / 24) {
             var x = point[0] + (distance * cos(a));
             var y = point[1] + (distance * sin(a));
@@ -305,7 +314,7 @@ class Map {
             }
         }
         if (options.length < 1) {
-            return false;
+            return {'match': false, 'end': true};
         }
 
         var fit_function = function(p1, p2) {
@@ -314,7 +323,21 @@ class Map {
         }
         var match = this.get_best_fit(point, options, fit_function);
 
-        return match.match;
+        // check proximity to existing points
+        options = []
+        var distance_threshold = this.snap_radius;
+        // check all the roads for options within the radius
+        for (var r = 0; r < this.roads.length; r++) {
+            var closest = this.get_best_fit(match.match, this.roads[r], this.get_distance);
+            if (closest.distance < distance_threshold) {
+                return {'match': closest.match, 'end': true};
+            }
+        }
+
+        return {
+            'match': match.match,
+            'end': false,
+        };
     }
 
 
@@ -324,7 +347,7 @@ class Map {
         if (this.is_water(x, y, 5) || !this.on_map(x, y)) {
             return false;
         }
-        var distance_threshold = 4;
+
         for (var r = 0; r < this.roads.length; r++) {
             // check for intersection
             for (var s = 0; s < this.roads[r].length - 1; s++) {
@@ -332,11 +355,6 @@ class Map {
                    return false;
                }
             }
-            /*
-            var match = this.get_best_fit([x, y], this.roads[r], this.get_distance);
-            if (match.distance < distance_threshold) {
-                return false;
-            }*/
         }
         return true;
     }
