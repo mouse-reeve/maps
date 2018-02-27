@@ -64,14 +64,12 @@ class Map {
 
     draw_map(layer) {
         // ----- compute elements ----- \\
-        /*
         this.add_elevation();
         this.add_ocean();
         this.add_river();
-        */
+        //this.elevation = data;
+        //this.riverline = river_data;
         this.add_population_density();
-        this.elevation = data;
-        this.riverline = river_data;
         this.add_roads();
 
         // ----- draw map ------------- \\
@@ -79,6 +77,8 @@ class Map {
             this.draw_topo();
         } else if (layer.indexOf('population') > -1) {
             this.draw_population();
+        } else if (layer.indexOf('urban') > -1) {
+            this.draw_urban();
         }
         if (layer.indexOf('roads') > -1) {
             this.draw_roads();
@@ -139,19 +139,6 @@ class Map {
         pop();
     }
 
-    draw_roads() {
-        push();
-        strokeWeight(3);
-        for (var i = 0; i < this.roads.length; i++) {
-            stroke((i/this.roads.length) * 200);
-            var road = this.roads[i];
-            for (var j = 0; j < road.length - 1; j++) {
-                line(road[j][0], road[j][1], road[j + 1][0], road[j + 1][1]);
-            }
-        }
-        pop();
-    }
-
     draw_topo() {
         // topo map
         var color_gap = 5;
@@ -206,6 +193,45 @@ class Map {
         return false;
     }
 
+    draw_urban() {
+        // topo map
+        var color_gap = 5;
+        var colors = {
+            water: '#AADBFF',//'#CAE1EF',
+            ground: '#E8E8E8',
+            road: '#FFFFFF',
+        };
+        push();
+        for (var y = 0; y < height; y++) {
+            for (var x = 0; x < width; x++) {
+                var point_color = this.get_elevation(x, y) < 0 ? colors.water : colors.ground;
+                stroke(point_color);
+                point(x, y);
+            }
+        }
+        pop();
+        this.draw_roads(colors.road);
+    }
+
+    draw_roads(color) {
+        push();
+        strokeWeight(3);
+        if (color !== undefined) {
+            stroke(color);
+        }
+        for (var i = 0; i < this.roads.length; i++) {
+            if (color === undefined) {
+                stroke((i/this.roads.length) * 200);
+            }
+            var road = this.roads[i];
+            for (var j = 0; j < road.length - 1; j++) {
+                line(road[j][0], road[j][1], road[j + 1][0], road[j + 1][1]);
+            }
+        }
+        pop();
+    }
+
+
     add_elevation() {
         // uses simplex noise to create an elevation matrix
         var start_time = new Date();
@@ -234,6 +260,16 @@ class Map {
         }
         var end_time = new Date();
         console.log('elevation map', (end_time - start_time) / 1000)
+    }
+
+    get_river(x, y) {
+        // making this a function so that it can be swapped out or used
+        // with elevation modifiers
+        x = Math.round(x);
+        y = Math.round(y);
+        if (this.on_map(x, y)) {
+            return this.river[x][y];
+        }
     }
 
     get_elevation(x, y) {
@@ -265,7 +301,7 @@ class Map {
     continue_road(road, segment_length, count) {
         if (count == undefined) count = 1;
 
-        if (count > this.step || segment_length < this.min_segment_length) {
+        if (segment_length < this.min_segment_length) {
             return;
         }
         // add to and/or fork off new road roads
@@ -275,8 +311,24 @@ class Map {
         var penultimate = road.length - 2;
         var ultimate = road.length - 1;
 
-        // ----- continue the road
         var theta = atan2(road[ultimate][1] - road[penultimate][1], road[ultimate][0] - road[penultimate][0]);
+
+        // ----- branch from the road in both directions
+        var decrement = random(0.5, 1.1);
+        for (var i = -1; i <= 1; i += 2) {
+            // perpendicular slope
+            var perpendicular_theta = theta + (i * HALF_PI);
+            var fork_next = this.next_road_segment(road[ultimate], decrement * segment_length, perpendicular_theta, fork_perterbation);
+            if (fork_next.match) {
+                var fork = [road[ultimate], fork_next.match];
+                this.roads.push(fork);
+                if (!fork_next.end) {
+                    this.continue_road(fork, segment_length * decrement, count + 1);
+                }
+            }
+        }
+
+        // ----- continue the road
         var next = this.next_road_segment(road[ultimate], segment_length, theta, road_perterbation);
 
         // terminate roads that are in water or off the map
@@ -286,20 +338,6 @@ class Map {
         road.push(next.match);
         if (!next.end) {
             this.continue_road(road, segment_length, count + 1);
-        }
-
-        // ----- branch from the road in both directions
-        for (var i = -1; i <= 1; i += 2) {
-            // perpendicular slope
-            var perpendicular_theta = theta + (i * HALF_PI);
-            var next = this.next_road_segment(road[ultimate], segment_length, perpendicular_theta, fork_perterbation);
-            if (next.match) {
-                var fork = [road[ultimate], next.match];
-                this.roads.push(fork);
-                if (!next.end) {
-                    this.continue_road(fork, segment_length * 0.7, count + 1);
-                }
-            }
         }
         return road
     }
@@ -311,7 +349,23 @@ class Map {
         for (var a = theta - perterbation; a <= theta + perterbation; a += PI / 24) {
             var x = point[0] + (distance * cos(a));
             var y = point[1] + (distance * sin(a));
-            if (this.validate_road_point([point, [x, y]])) {
+            // try to make bridges
+            var create_bridge = random() > 1 - (this.get_population_density(point[0], point[1]) * 0.1);
+            if (this.on_map(x, y) && this.get_river(x, y) && create_bridge) {
+                // maybe make a bridge
+                var bridge_length = distance;
+                while (this.get_river(x, y)) {
+                    x = point[0] + (bridge_length * cos(a));
+                    y = point[1] + (bridge_length * sin(a));
+                    bridge_length++;
+                }
+                bridge_length += 7;
+                x = point[0] + (bridge_length * cos(a));
+                y = point[1] + (bridge_length * sin(a));
+                if (bridge_length < this.max_segment_length && this.validate_bridge_point([point, [x, y]])) {
+                    options.push([x, y]);
+                }
+            } else if (this.validate_road_point([point, [x, y]])) {
                 options.push([x, y]);
             }
         }
@@ -327,6 +381,7 @@ class Map {
 
         // check proximity to existing points
         options = []
+
         var distance_threshold = this.snap_radius;
         // check all the roads for options within the radius
         for (var r = 0; r < this.roads.length; r++) {
@@ -342,6 +397,24 @@ class Map {
         };
     }
 
+
+    validate_bridge_point(segment) {
+        var x = segment[1][0];
+        var y = segment[1][1];
+        if (!this.on_map(x, y)) {
+            return false;
+        }
+
+        for (var r = 0; r < this.roads.length; r++) {
+            // check for intersection
+            for (var s = 0; s < this.roads[r].length - 1; s++) {
+               if (this.segment_intersection(this.roads[r][s], this.roads[r][s + 1], segment[0], segment[1])) {
+                   return false;
+               }
+            }
+        }
+        return true;
+    }
 
     validate_road_point(segment) {
         var x = segment[1][0];
@@ -411,19 +484,23 @@ class Map {
     add_population_density() {
         // simplex noise that is centered around a downtown peak
         var start_time = new Date();
-        this.city_center = [Math.round(random(width / 2, 3 * width / 4)), Math.round(random(height / 2, 3 * height / 4))];
-        // place it more randomly if it fell in the water
-        while (this.is_water(this.city_center[0], this.city_center[1])) {
-            this.city_center = [Math.round(random(width / 6, 5 * width / 6)), Math.round(random(height / 6, 5 * height / 6))];
+        //this.city_center = [Math.round(random(width / 2, 3 * width / 4)), Math.round(random(height / 2, 3 * height / 4))];
+        var river_center = this.riverline[int(this.riverline.length / 2)];
+        var x = river_center[0];
+        var y = river_center[1];
+        while (this.is_water(x, y)) {
+            y += 1;
         }
-        var longest = Math.sqrt(width ** 2 + height ** 2);
+        y += 20; // remove the city center enough from the river that it's out of the waterline radius
+        this.city_center = [x, y];
 
+        var longest = Math.sqrt(width ** 2 + height ** 2);
         for (var y = 0; y < height; y++) {
             for (var x = 0; x < width; x++) {
-                if (this.is_water(x, y)) {
+                /*if (this.is_water(x, y)) {
                     this.population_density[x][y] = -1;
                     continue
-                }
+                }*/
                 // distance from city center - closer means higher density
                 var distance = this.get_distance(this.city_center, [x, y]);
 
