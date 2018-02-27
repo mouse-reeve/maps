@@ -265,7 +265,7 @@ class Map {
         }
         // add to and/or fork off new road roads
         var road_perterbation = perterbation;
-        var fork_perterbation = perterbation * 2;
+        var fork_perterbation = perterbation / 2;
 
         var penultimate = road.length - 2;
         var ultimate = road.length - 1;
@@ -315,7 +315,7 @@ class Map {
     validate_road_point(segment) {
         var x = segment[1][0];
         var y = segment[1][1];
-        if (this.is_water(x, y) || !this.on_map(x, y)) {
+        if (this.is_water(x, y, 5) || !this.on_map(x, y)) {
             return false;
         }
         var distance_threshold = 4;
@@ -467,7 +467,18 @@ class Map {
         }
     }
 
-    is_water(x, y) {
+    is_water(x, y, radius) {
+        if (radius) {
+            for (var a = 0; a < TWO_PI; a += PI / 6) {
+                for (var r = 0; r < radius; r++) {
+                    var nx = x + r * cos(a);
+                    var ny = y + r * sin(a);
+                    if (this.get_elevation(nx, ny) < 0) {
+                        return true;
+                    }
+                }
+            }
+        }
         return this.get_elevation(x, y) < 0;
     }
 
