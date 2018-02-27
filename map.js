@@ -16,8 +16,8 @@ function setup() {
     }
     var seed = params.seed || Math.floor(Math.random() * 10000);
     var layer = params.layer || 'topo';
-    step = params.step || 50;
-    perterbation = params.perterbation || 0;
+    step = int(params.step) || 50;
+    perterbation = float(params.perterbation) || 0;
     console.log(seed)
 
     black = color(0);
@@ -272,12 +272,11 @@ class Map {
 
         // ----- continue the road
         var theta = atan2(road[ultimate][1] - road[penultimate][1], road[ultimate][0] - road[penultimate][0]);
-        theta += random(-1 * road_perterbation, road_perterbation);
-        var next = this.next_road_segment(road[ultimate], segment_length, theta);
+        var next = this.next_road_segment(road[ultimate], segment_length, theta, perterbation);
 
         // terminate roads that are in water or off the map
         if (!this.validate_road_point([road[ultimate], [next[0], next[1]]])) {
-            return //road;
+            return;
         }
         road.push([next[0], next[1]]);
         this.continue_road(road, segment_length, count + 1);
@@ -285,8 +284,8 @@ class Map {
         // ----- branch from the road in both directions
         for (var i = -1; i <= 1; i += 2) {
             // perpendicular slope
-            var perpendicular_theta = theta + (i * HALF_PI) + random(-1 * fork_perterbation, fork_perterbation);
-            var next = this.next_road_segment(road[ultimate], segment_length, perpendicular_theta);
+            var perpendicular_theta = theta + (i * HALF_PI);
+            var next = this.next_road_segment(road[ultimate], segment_length, perpendicular_theta, perterbation);
             if (this.validate_road_point([road[ultimate], [next[0], next[1]]])) {
                 var fork = [road[ultimate], [next[0], next[1]]];
                 this.roads.push(fork);
@@ -296,11 +295,22 @@ class Map {
         return road
     }
 
-    next_road_segment(point, distance, theta) {
-        var x = point[0] + distance * cos(theta);
-        var y = point[1] + distance * sin(theta);
-        return [x, y]
+    next_road_segment(point, distance, theta, perterbation) {
+        var options = [];
+        for (var a = theta - perterbation; a <= theta + perterbation; a += PI / 24) {
+            var x = point[0] + (distance * cos(a));
+            var y = point[1] + (distance * sin(a));
+            options.push([x, y]);
+        }
+        var fit_function = function(p1, p2) {
+            // needs to return smaller values for more desirable results, and we want least elevation change
+            return Math.abs(this.get_elevation(p1[0], p1[1]) - this.get_elevation(p2[0], p2[1]));
+        }
+        var match = this.get_best_fit(point, options, fit_function);
+
+        return match.match;
     }
+
 
     validate_road_point(segment) {
         var x = segment[1][0];
