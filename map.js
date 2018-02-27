@@ -275,7 +275,7 @@ class Map {
         var next = this.next_road_segment(road[ultimate], segment_length, theta, perterbation);
 
         // terminate roads that are in water or off the map
-        if (!this.validate_road_point([road[ultimate], [next[0], next[1]]])) {
+        if (!next) {
             return;
         }
         road.push([next[0], next[1]]);
@@ -286,7 +286,7 @@ class Map {
             // perpendicular slope
             var perpendicular_theta = theta + (i * HALF_PI);
             var next = this.next_road_segment(road[ultimate], segment_length, perpendicular_theta, perterbation);
-            if (this.validate_road_point([road[ultimate], [next[0], next[1]]])) {
+            if (next) {
                 var fork = [road[ultimate], [next[0], next[1]]];
                 this.roads.push(fork);
                 this.continue_road(fork, segment_length * 0.7, count + 1);
@@ -300,8 +300,14 @@ class Map {
         for (var a = theta - perterbation; a <= theta + perterbation; a += PI / 24) {
             var x = point[0] + (distance * cos(a));
             var y = point[1] + (distance * sin(a));
-            options.push([x, y]);
+            if (this.validate_road_point([point, [x, y]])) {
+                options.push([x, y]);
+            }
         }
+        if (options.length < 1) {
+            return false;
+        }
+
         var fit_function = function(p1, p2) {
             // needs to return smaller values for more desirable results, and we want least elevation change
             return Math.abs(this.get_elevation(p1[0], p1[1]) - this.get_elevation(p2[0], p2[1]));
