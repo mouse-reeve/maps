@@ -248,11 +248,13 @@ class Map {
 
     add_roads() {
         var start_time = new Date();
-        for (var i = -1; i <= 1; i += 2) {
-            for (var j = -1; j <= 1; j += 2) {
-                var road = [this.city_center, [this.city_center[0] + i, this.city_center[1] + j]];
-                this.roads.push(road);
-                this.continue_road(road, this.max_segment_length);
+        for (var r = 0; r < this.population_peaks.length; r++) {
+            for (var i = -1; i <= 1; i += 2) {
+                for (var j = -1; j <= 1; j += 2) {
+                    var road = [this.population_peaks[r], [this.population_peaks[r][0] + i, this.population_peaks[r][1] + j]];
+                    this.roads.push(road);
+                    this.continue_road(road, this.max_segment_length - (2 * r));
+                }
             }
         }
 
