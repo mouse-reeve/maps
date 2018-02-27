@@ -245,9 +245,13 @@ class Map {
 
     add_roads() {
         var start_time = new Date();
-        var road = [[5, height - 5], [5, height - 6]];
-        this.roads.push(road);
-        this.continue_road(road, 50);
+        for (var i = -1; i <= 1; i += 2) {
+            for (var j = -1; j <= 1; j += 2) {
+                var road = [this.city_center, [this.city_center[0] + i, this.city_center[1] + j]];
+                this.roads.push(road);
+                this.continue_road(road, 50);
+            }
+        }
 
         var end_time = new Date();
         console.log('adding roads', (end_time - start_time) / 1000)
