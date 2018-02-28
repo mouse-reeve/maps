@@ -197,8 +197,9 @@ class Map {
         // topo map
         var color_gap = 5;
         var colors = {
-            water: '#AADBFF',//'#CAE1EF',
+            water: '#AADBFF',
             ground: '#E8E8E8',
+            road_shadow: '#E5E5E5',
             road: '#FFFFFF',
         };
         push();
@@ -210,17 +211,30 @@ class Map {
             }
         }
         pop();
-        this.draw_roads(colors.road);
+        this.draw_roads(colors);
     }
 
-    draw_roads(color) {
+    draw_roads(colors) {
         push();
         strokeWeight(3);
-        if (color !== undefined) {
-            stroke(color);
+        if (colors !== undefined) {
+            stroke(colors.road);
+        }
+        if (colors !== undefined) {
+            for (var i = 0; i < this.roads.length; i++) {
+                var road = this.roads[i];
+                for (var j = 0; j < road.length - 1; j++) {
+                    push();
+                    strokeCap(SQUARE);
+                    stroke(colors.road_shadow);
+                    strokeWeight(5);
+                    line(road[j][0], road[j][1], road[j + 1][0], road[j + 1][1]);
+                    pop();
+                }
+            }
         }
         for (var i = 0; i < this.roads.length; i++) {
-            if (color === undefined) {
+            if (colors === undefined) {
                 stroke((i/this.roads.length) * 200);
             }
             var road = this.roads[i];
