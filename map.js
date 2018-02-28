@@ -223,11 +223,13 @@ class Map {
         if (colors !== undefined) {
             for (var i = 0; i < this.roads.length; i++) {
                 var road = this.roads[i];
+                var segment_length = this.get_distance(road[road.length - 2], road[road.length - 1]);
+                var road_width = segment_length < this.min_segment_length * 2 ? 2 : 3;
                 for (var j = 0; j < road.length - 1; j++) {
                     push();
-                    strokeCap(SQUARE);
                     stroke(colors.road_shadow);
-                    strokeWeight(5);
+                    strokeCap(SQUARE);
+                    strokeWeight(road_width + 2);
                     line(road[j][0], road[j][1], road[j + 1][0], road[j + 1][1]);
                     pop();
                 }
@@ -238,6 +240,10 @@ class Map {
                 stroke((i/this.roads.length) * 200);
             }
             var road = this.roads[i];
+            //var road_width = 1 + (this.get_distance(road[road.length - 2], road[road.length - 1]) / ((this.max_segment_length - this.min_segment_length) / 4));
+            var segment_length = this.get_distance(road[road.length - 2], road[road.length - 1]);
+            var road_width = segment_length < this.min_segment_length * 2 ? 2 : 3;
+            strokeWeight(road_width);
             for (var j = 0; j < road.length - 1; j++) {
                 line(road[j][0], road[j][1], road[j + 1][0], road[j + 1][1]);
             }
@@ -433,7 +439,7 @@ class Map {
     validate_road_point(segment) {
         var x = segment[1][0];
         var y = segment[1][1];
-        if (this.is_water(x, y, 5) || !this.on_map(x, y)) {
+        if (this.is_water(x, y, 3) || !this.on_map(x, y)) {
             return false;
         }
 
