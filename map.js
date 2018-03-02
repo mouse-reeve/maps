@@ -428,26 +428,6 @@ class Map {
         var match = this.get_best_fit(point, options, fit_function);
 
         // check all the roads for options within the radius
-        var cmqtt_segment = new Segment({x: point[0], y: point[1]}, {x: match.match[0], y: match.match[1]});
-        var snappable = this.roads_cmqtt.query(cmqtt_segment, this.snap_radius);
-
-        /*
-        var closest_point = snappable.reduce((acc, s) => {
-                // get closest point of the two points in segment
-                console.log(acc, s);
-                return this.get_best_fit(match.match, [[s.p1.x, s.p1.y], [s.p2.x, s.p2.y], acc], this.get_distance).match;
-            },
-            [width ** 2, height ** 2]);
-
-        if (this.get_distance(closest_point, point) > this.snap_radius) {
-            return {
-                'match': match.match,
-                'end': false,
-            };
-        } else {
-            return {'match': closest_point, 'end': true};
-        }*/
-
         for (var r = this.roads.length - 1; r >= 0; r--) {
             var closest = this.get_best_fit(match.match, this.roads[r], this.get_distance);
             if (closest.distance < this.snap_radius) {
@@ -489,15 +469,6 @@ class Map {
             return false;
         }
 
-        /*
-        for (var r = 0; r < this.roads.length; r++) {
-            // check for intersection
-            for (var s = 0; s < this.roads[r].length - 1; s++) {
-               if (this.segment_intersection(this.roads[r][s], this.roads[r][s + 1], segment[0], segment[1])) {
-                   return false;
-               }
-            }
-        }*/
         return true;
     }
 
@@ -564,10 +535,10 @@ class Map {
         var longest = Math.sqrt(width ** 2 + height ** 2);
         for (var y = 0; y < height; y++) {
             for (var x = 0; x < width; x++) {
-                /*if (this.is_water(x, y)) {
+                if (this.is_water(x, y)) {
                     this.population_density[x][y] = -1;
                     continue
-                }*/
+                }
                 // distance from city center - closer means higher density
                 var distance = this.get_distance(this.city_center, [x, y]);
 
