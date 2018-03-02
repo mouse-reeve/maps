@@ -60,6 +60,7 @@ class Map {
         this.population_density = this.create_matrix();
         this.population_peaks = [];
         this.roads = [];
+        this.roads_cmqtt = new ConnorMouseQuadtreeTree(0, 0, width, height);
     }
 
     draw_map(layer) {
@@ -79,6 +80,8 @@ class Map {
             this.draw_population();
         } else if (layer.indexOf('urban') > -1) {
             this.draw_urban();
+        } else if (layer.indexOf('cmqtt') > -1) {
+            this.draw_cmqtt();
         }
         if (layer.indexOf('roads') > -1) {
             this.draw_roads();
@@ -101,17 +104,34 @@ class Map {
         }
         pop()
         */
-        // for debugging neighborhoods
+        /* for debugging neighborhoods
         push();
         for (var i = 0; i < this.population_peaks.length; i++) {
             fill((i/this.population_peaks.length) * 255);
             ellipse(this.population_peaks[i][0], this.population_peaks[i][1], 10, 10);
         }
         pop()
-        //
+        */
 
         this.compass_rose();
         this.draw_scale();
+    }
+
+    draw_cmqtt(tree) {
+        tree = tree || this.roads_cmqtt;
+        // traverse cmqtt to get all the rects and segments
+        push();
+        noFill();
+        stroke(black);
+        rect(tree.x, tree.y, tree.width, tree.height);
+        pop()
+        for (var c = 0; c < tree.children.length; c++) {
+            if (tree.children[c] instanceof ConnorMouseQuadtreeTree) {
+                this.draw_cmqtt(tree.children[c]);
+            } else {
+                line(tree.children[c].p1.x, tree.children[c].p1.y, tree.children[c].p2.x, tree.children[c].p2.y);
+            }
+        }
     }
 
     draw_population() {
@@ -310,8 +330,11 @@ class Map {
                     var road = [this.population_peaks[r], [this.population_peaks[r][0] + i, this.population_peaks[r][1] + j]];
                     this.roads.push(road);
                     this.continue_road(road, this.max_segment_length - (2 * r));
+                    break;
                 }
+                    break;
             }
+                    break;
         }
 
         var end_time = new Date();
@@ -341,6 +364,9 @@ class Map {
             var fork_next = this.next_road_segment(road[ultimate], decrement * segment_length, perpendicular_theta, fork_perterbation);
             if (fork_next.match) {
                 var fork = [road[ultimate], fork_next.match];
+                var cmqtt_segment = new Segment({x: road[ultimate][0], y: road[ultimate][1]}, {x: fork_next.match[0], y: fork_next.match[1]});
+                this.roads_cmqtt.insert(cmqtt_segment);
+                // a branch has been added
                 this.roads.push(fork);
                 if (!fork_next.end) {
                     this.continue_road(fork, segment_length * decrement, count + 1);
@@ -355,6 +381,8 @@ class Map {
         if (!next.match) {
             return;
         }
+        var cmqtt_segment = new Segment({x: road[ultimate][0], y: road[ultimate][1]}, {x: next.match[0], y: next.match[1]});
+        this.roads_cmqtt.insert(cmqtt_segment);
         road.push(next.match);
         if (!next.end) {
             this.continue_road(road, segment_length, count + 1);
@@ -399,14 +427,30 @@ class Map {
         }
         var match = this.get_best_fit(point, options, fit_function);
 
-        // check proximity to existing points
-        options = []
-
-        var distance_threshold = this.snap_radius;
         // check all the roads for options within the radius
-        for (var r = 0; r < this.roads.length; r++) {
+        var cmqtt_segment = new Segment({x: point[0], y: point[1]}, {x: match.match[0], y: match.match[1]});
+        var snappable = this.roads_cmqtt.query(cmqtt_segment, this.snap_radius);
+
+        /*
+        var closest_point = snappable.reduce((acc, s) => {
+                // get closest point of the two points in segment
+                console.log(acc, s);
+                return this.get_best_fit(match.match, [[s.p1.x, s.p1.y], [s.p2.x, s.p2.y], acc], this.get_distance).match;
+            },
+            [width ** 2, height ** 2]);
+
+        if (this.get_distance(closest_point, point) > this.snap_radius) {
+            return {
+                'match': match.match,
+                'end': false,
+            };
+        } else {
+            return {'match': closest_point, 'end': true};
+        }*/
+
+        for (var r = this.roads.length - 1; r >= 0; r--) {
             var closest = this.get_best_fit(match.match, this.roads[r], this.get_distance);
-            if (closest.distance < distance_threshold) {
+            if (closest.distance < this.snap_radius) {
                 return {'match': closest.match, 'end': true};
             }
         }
@@ -415,6 +459,7 @@ class Map {
             'match': match.match,
             'end': false,
         };
+
     }
 
 
@@ -425,13 +470,9 @@ class Map {
             return false;
         }
 
-        for (var r = 0; r < this.roads.length; r++) {
-            // check for intersection
-            for (var s = 0; s < this.roads[r].length - 1; s++) {
-               if (this.segment_intersection(this.roads[r][s], this.roads[r][s + 1], segment[0], segment[1])) {
-                   return false;
-               }
-            }
+        var cmqtt_segment = new Segment({x: segment[0][0], y: segment[0][1]}, {x: segment[1][0], y: segment[1][1]});
+        if (this.roads_cmqtt.query(cmqtt_segment, 0).length > 0) {
+            return false;
         }
         return true;
     }
@@ -443,6 +484,12 @@ class Map {
             return false;
         }
 
+        var cmqtt_segment = new Segment({x: segment[0][0], y: segment[0][1]}, {x: segment[1][0], y: segment[1][1]});
+        if (this.roads_cmqtt.query(cmqtt_segment, 0).length > 0) {
+            return false;
+        }
+
+        /*
         for (var r = 0; r < this.roads.length; r++) {
             // check for intersection
             for (var s = 0; s < this.roads[r].length - 1; s++) {
@@ -450,7 +497,7 @@ class Map {
                    return false;
                }
             }
-        }
+        }*/
         return true;
     }
 

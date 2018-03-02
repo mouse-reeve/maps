@@ -12,27 +12,27 @@ class ConnorMouseQuadtreeTree {
 
     insert(segment) {
         // check if it is in bounds
+        segment.depth = segment.depth + 1 || 1;
         if (!segment.isContainedWithin(this.x, this.y, this.width, this.height)) {
             return false;
         }
+
         if (this.is_branch()) {
             // check children
             for (var i = 0; i < this.children.length; i++) {
                 // attempt inset into those points
                 const ok = this.children[i].insert(segment);
-                if (ok) return true;
             }
         } else {
             // attempt insert or subdivide
-            if (this.children.length >= this.max_leaves) {
+            if (this.children.length >= max_leaves) {
                 this.subdivide(segment);
             }
             else {
                 this.children.push(segment);
             }
         }
-
-        return false;
+        return true;
     }
 
     subdivide(segment) {
@@ -47,13 +47,11 @@ class ConnorMouseQuadtreeTree {
                     var ok = cmqtt.insert(this.children[c]);
 
                     // remove child from parent quadtree if segment was inserted
-                    if (ok)
+                    if (ok) {
                         this.children.splice(c, 1);
+                    }
                 }
-            }
-            
-            // add the new ConnorMouseQuadtreeTree to the array if segments were successfully inserted
-            if (cmqtt.children.length > 0) {
+                // add the new ConnorMouseQuadtreeTree to the array if segments were successfully inserted
                 cmqtts.push(cmqtt);
             }
         }
@@ -76,6 +74,7 @@ class ConnorMouseQuadtreeTree {
                 var dy = radius * sin(segment.theta + HALF_PI); 
 
                 // check if segment is within rectangular box around reference segment
+                // TODO: this will fail because the rectablge won't be along the axis of the segment
                 var isContained = child.isContainedWithin(segment.p1.x - dx, segment.p1.y - dy, 2 * radius, segment.length) ||
                                   child.isContainedWithin(segment.p1.x, segment.p1.y, radius) ||
                                   child.isContainedWithin(segment.p2.x, segment.p2.y, radius);
@@ -83,11 +82,15 @@ class ConnorMouseQuadtreeTree {
                 if (isContained)
                     segments.push(child);
             }
-
             return segments;
         }
 
         // if we are here, the children are quadtrees and we will query them
+        // check if the segment is anywhere in this quardrant
+        if (segment.isContainedWithin(this.x, this.y, this.width, this.height)) {
+            return segments;
+        }
+
         for (var q = 0; q < this.children.length; q++) {
             segments.concat(this.children[q].query(segment, radius));
         }
@@ -121,6 +124,9 @@ class Segment {
     }
 
     isContainedWithin(x, y, widthOrRadius, h) {
+        // we intentionally exclude segments that share endpoints
+        if ((x == this.p1.x && y == this.p1.y) || (x == this.p2.x && y == this.p2.y))
+            return false;
         if (h === undefined)
             return this.isContainedWithinCircle(x, y, widthOrRadius);
 
@@ -143,7 +149,7 @@ class Segment {
 
         // check intersection of bounding vectors
         for (var v = 0; v < bounds.length; v++) {
-            const isIntersecting = this.segment_intersection(bounds[v], bounds[v+1], this.p1, this.p2);
+            const isIntersecting = this.segment_intersection(bounds[v][0], bounds[v][1], this.p1, this.p2);
 
             if (isIntersecting) return true;
         }
@@ -167,11 +173,11 @@ class Segment {
 
     counterclockwise(a, b, c) {
         // utility function for determining if line segments intersect
-        return (c[1] - a[1]) * (b[0] - a[0]) > (b[1] - a[1]) * (c[0] - a[0]);
+        return (c.y - a.y) * (b.x - a.x) > (b.y - a.y) * (c.x - a.x);
     }
 
     get_distance(p1, p2) {
-        return Math.sqrt(Math.pow(p2[0] - p1[0], 2) + Math.pow(p2[1] - p1[1], 2));
+        return Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
     }
 
     get_corner_angle(p1, p2, p3) {
