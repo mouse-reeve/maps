@@ -262,7 +262,6 @@ class Map {
                 stroke((i/this.roads.length) * 200);
             }
             var road = this.roads[i];
-            //var road_width = 1 + (get_distance(road[road.length - 2], road[road.length - 1]) / ((this.max_segment_length - this.min_segment_length) / 4));
             var segment_length = get_distance(road[road.length - 2], road[road.length - 1]);
             var road_width = segment_length < this.min_segment_length * 2 ? 2 : 3;
             strokeWeight(road_width);
@@ -330,10 +329,10 @@ class Map {
         for (var i = -1; i <= 1; i += 2) {
             for (var j = -1; j <= 1; j += 2) {
                 var road = [this.city_center, {x: this.city_center.x + i, y: this.city_center.y + j}];
+                this.roads.push(road);
+                this.continue_road(road, this.max_segment_length);
             }
         }
-        this.roads.push(road);
-        this.continue_road(road, this.max_segment_length);
 
         var end_time = new Date();
         console.log('adding roads', (end_time - start_time) / 1000)
