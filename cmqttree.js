@@ -120,7 +120,7 @@ class Segment {
         this.p1 = p1;
         this.p2 = p2;
         this.theta = atan2(p1.y - p2.y, p1.x - p2.x);
-        this.length = this.get_distance(p1, p2);
+        this.length = get_distance(p1, p2);
     }
 
     isContainedWithin(x, y, widthOrRadius, h) {
@@ -158,7 +158,7 @@ class Segment {
     }
 
     isContainedWithinCircle(x, y, r) {
-        const h = this.get_distance(this.p1, {x, y});
+        const h = get_distance(this.p1, {x, y});
         const theta = this.get_corner_angle({x, y}, this.p1, this.p2);
         const o = h * sin(theta);
 
@@ -176,10 +176,6 @@ class Segment {
         return (c.y - a.y) * (b.x - a.x) > (b.y - a.y) * (c.x - a.x);
     }
 
-    get_distance(p1, p2) {
-        return Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
-    }
-
     get_corner_angle(p1, p2, p3) {
         /*      p1
         /       /|
@@ -188,9 +184,9 @@ class Segment {
         / p2   c  p3
         */
 
-        var a = this.get_distance(p3, p1);
-        var b = this.get_distance(p1, p2);
-        var c = this.get_distance(p2, p3);
+        var a = get_distance(p3, p1);
+        var b = get_distance(p1, p2);
+        var c = get_distance(p2, p3);
 
         return Math.acos(((b ** 2) + (c ** 2) - (a ** 2)) / (2 * b * c));
     }

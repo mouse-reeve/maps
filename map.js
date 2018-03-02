@@ -6,6 +6,7 @@ function setup() {
     var canvas = createCanvas(1165, 600);
     canvas.parent(container);
 
+    // parse URL get params
     var param_string = window.location.search.substr(1).split('&');
     var params = {};
     for (var i = 0; i < param_string.length; i++) {
@@ -16,6 +17,7 @@ function setup() {
     var layer = params.layer || 'topo';
     console.log(seed)
 
+    // establish color globals now that things are initialized
     black = color(0);
     white = color(255);
 
@@ -43,11 +45,10 @@ class Map {
         this.elevation_noisiness = 3; // increase for less smooth elevation boundaries
 
         // roads
-        this.snap_radius = int(params.snap || 6);
+        this.snap_radius = int(params.snap || 6); // connect trailing roads to nearby roads
         this.min_segment_length = params.min || 5;
         this.max_segment_length = params.max || 50;
-        this.perterbation = float(params.perterbation || 0);
-        this.step = params.step || 50;
+        this.perterbation = float(params.perterbation || 0); // angle range for roads
 
         // ----- Map components ------------\\
         this.elevation = this.create_matrix();
@@ -118,6 +119,7 @@ class Map {
     }
 
     draw_cmqtt(tree) {
+        // visualizer for debugging the ConnorMouseQuadtreeTree data strucutre
         tree = tree || this.roads_cmqtt;
         // traverse cmqtt to get all the rects and segments
         push();
@@ -243,14 +245,14 @@ class Map {
         if (colors !== undefined) {
             for (var i = 0; i < this.roads.length; i++) {
                 var road = this.roads[i];
-                var segment_length = this.get_distance(road[road.length - 2], road[road.length - 1]);
+                var segment_length = get_distance(road[road.length - 2], road[road.length - 1]);
                 var road_width = segment_length < this.min_segment_length * 2 ? 2 : 3;
                 for (var j = 0; j < road.length - 1; j++) {
                     push();
                     stroke(colors.road_shadow);
                     strokeCap(SQUARE);
                     strokeWeight(road_width + 2);
-                    line(road[j][0], road[j][1], road[j + 1][0], road[j + 1][1]);
+                    line(road[j].x, road[j].y, road[j + 1].x, road[j + 1].y);
                     pop();
                 }
             }
@@ -260,12 +262,12 @@ class Map {
                 stroke((i/this.roads.length) * 200);
             }
             var road = this.roads[i];
-            //var road_width = 1 + (this.get_distance(road[road.length - 2], road[road.length - 1]) / ((this.max_segment_length - this.min_segment_length) / 4));
-            var segment_length = this.get_distance(road[road.length - 2], road[road.length - 1]);
+            //var road_width = 1 + (get_distance(road[road.length - 2], road[road.length - 1]) / ((this.max_segment_length - this.min_segment_length) / 4));
+            var segment_length = get_distance(road[road.length - 2], road[road.length - 1]);
             var road_width = segment_length < this.min_segment_length * 2 ? 2 : 3;
             strokeWeight(road_width);
             for (var j = 0; j < road.length - 1; j++) {
-                line(road[j][0], road[j][1], road[j + 1][0], road[j + 1][1]);
+                line(road[j].x, road[j].y, road[j + 1].x, road[j + 1].y);
             }
         }
         pop();
@@ -324,18 +326,14 @@ class Map {
 
     add_roads() {
         var start_time = new Date();
-        for (var r = 0; r < this.population_peaks.length; r++) {
-            for (var i = -1; i <= 1; i += 2) {
-                for (var j = -1; j <= 1; j += 2) {
-                    var road = [this.population_peaks[r], [this.population_peaks[r][0] + i, this.population_peaks[r][1] + j]];
-                    this.roads.push(road);
-                    this.continue_road(road, this.max_segment_length - (2 * r));
-                    break;
-                }
-                    break;
+
+        for (var i = -1; i <= 1; i += 2) {
+            for (var j = -1; j <= 1; j += 2) {
+                var road = [this.city_center, {x: this.city_center.x + i, y: this.city_center.y + j}];
             }
-                    break;
         }
+        this.roads.push(road);
+        this.continue_road(road, this.max_segment_length);
 
         var end_time = new Date();
         console.log('adding roads', (end_time - start_time) / 1000)
@@ -354,7 +352,7 @@ class Map {
         var penultimate = road.length - 2;
         var ultimate = road.length - 1;
 
-        var theta = atan2(road[ultimate][1] - road[penultimate][1], road[ultimate][0] - road[penultimate][0]);
+        var theta = atan2(road[ultimate].y - road[penultimate].y, road[ultimate].x - road[penultimate].x);
 
         // ----- branch from the road in both directions
         var decrement = random(0.5, 1.1);
@@ -364,7 +362,8 @@ class Map {
             var fork_next = this.next_road_segment(road[ultimate], decrement * segment_length, perpendicular_theta, fork_perterbation);
             if (fork_next.match) {
                 var fork = [road[ultimate], fork_next.match];
-                var cmqtt_segment = new Segment({x: road[ultimate][0], y: road[ultimate][1]}, {x: fork_next.match[0], y: fork_next.match[1]});
+                // track the new segment in the cmqtt data strucutre for efficient lookup later
+                var cmqtt_segment = new Segment(road[ultimate], fork_next.match);
                 this.roads_cmqtt.insert(cmqtt_segment);
                 // a branch has been added
                 this.roads.push(fork);
@@ -381,7 +380,7 @@ class Map {
         if (!next.match) {
             return;
         }
-        var cmqtt_segment = new Segment({x: road[ultimate][0], y: road[ultimate][1]}, {x: next.match[0], y: next.match[1]});
+        var cmqtt_segment = new Segment(road[ultimate], next.match);
         this.roads_cmqtt.insert(cmqtt_segment);
         road.push(next.match);
         if (!next.end) {
@@ -395,26 +394,26 @@ class Map {
 
         var options = []
         for (var a = theta - perterbation; a <= theta + perterbation; a += PI / 24) {
-            var x = point[0] + (distance * cos(a));
-            var y = point[1] + (distance * sin(a));
+            var x = point.x + (distance * cos(a));
+            var y = point.y + (distance * sin(a));
             // try to make bridges
-            var create_bridge = random() > 1 - (this.get_population_density(point[0], point[1]) * 0.1);
+            var create_bridge = random() > 1 - (this.get_population_density(point.x, point.y) * 0.1);
             if (this.on_map(x, y) && this.get_river(x, y) && create_bridge) {
                 // maybe make a bridge
                 var bridge_length = distance;
                 while (this.get_river(x, y)) {
-                    x = point[0] + (bridge_length * cos(a));
-                    y = point[1] + (bridge_length * sin(a));
+                    x = point.x + (bridge_length * cos(a));
+                    y = point.y + (bridge_length * sin(a));
                     bridge_length++;
                 }
                 bridge_length += 7;
-                x = point[0] + (bridge_length * cos(a));
-                y = point[1] + (bridge_length * sin(a));
-                if (bridge_length < this.max_segment_length && this.validate_bridge_point([point, [x, y]])) {
-                    options.push([x, y]);
+                x = point.x + (bridge_length * cos(a));
+                y = point.y + (bridge_length * sin(a));
+                if (bridge_length < this.max_segment_length && this.validate_bridge_point([point, {x, y}])) {
+                    options.push({x, y});
                 }
-            } else if (this.validate_road_point([point, [x, y]])) {
-                options.push([x, y]);
+            } else if (this.validate_road_point([point, {x, y}])) {
+                options.push({x, y});
             }
         }
         if (options.length < 1) {
@@ -423,13 +422,13 @@ class Map {
 
         var fit_function = function(p1, p2) {
             // needs to return smaller values for more desirable results, and we want least elevation change
-            return Math.abs(this.get_elevation(p1[0], p1[1]) - this.get_elevation(p2[0], p2[1]));
+            return Math.abs(this.get_elevation(p1.x, p1.y) - this.get_elevation(p2.x, p2.y));
         }
         var match = this.get_best_fit(point, options, fit_function);
 
         // check all the roads for options within the radius
         for (var r = this.roads.length - 1; r >= 0; r--) {
-            var closest = this.get_best_fit(match.match, this.roads[r], this.get_distance);
+            var closest = this.get_best_fit(match.match, this.roads[r], get_distance);
             if (closest.distance < this.snap_radius) {
                 return {'match': closest.match, 'end': true};
             }
@@ -439,56 +438,28 @@ class Map {
             'match': match.match,
             'end': false,
         };
-
     }
 
-
     validate_bridge_point(segment) {
-        var x = segment[1][0];
-        var y = segment[1][1];
+        var x = segment[1].x;
+        var y = segment[1].y;
         if (!this.on_map(x, y)) {
             return false;
         }
 
-        var cmqtt_segment = new Segment({x: segment[0][0], y: segment[0][1]}, {x: segment[1][0], y: segment[1][1]});
-        if (this.roads_cmqtt.query(cmqtt_segment, 0).length > 0) {
-            return false;
-        }
-        return true;
+        var cmqtt_segment = new Segment(segment[0], segment[1]);
+        return this.roads_cmqtt.query(cmqtt_segment, 0).length == 0
     }
 
     validate_road_point(segment) {
-        var x = segment[1][0];
-        var y = segment[1][1];
+        var x = segment[1].x;
+        var y = segment[1].y;
         if (this.is_water(x, y, 3) || !this.on_map(x, y)) {
             return false;
         }
 
-        var cmqtt_segment = new Segment({x: segment[0][0], y: segment[0][1]}, {x: segment[1][0], y: segment[1][1]});
-        if (this.roads_cmqtt.query(cmqtt_segment, 0).length > 0) {
-            return false;
-        }
-
-        return true;
-    }
-
-    segment_id(p1, p2) {
-        return str(p1).join(',') + '|' + str(p2).join(',');
-    }
-
-    get_corner_angle(p1, p2, p3) {
-        /*      p1
-        /       /|
-        /   b /  | a
-        /   /A___|
-        / p2   c  p3
-        */
-
-        var a = this.get_distance(p3, p1);
-        var b = this.get_distance(p1, p2);
-        var c = this.get_distance(p2, p3);
-
-        return Math.acos(((b ** 2) + (c ** 2) - (a ** 2)) / (2 * b * c));
+        var cmqtt_segment = new Segment(segment[0], segment[1]);
+        return this.roads_cmqtt.query(cmqtt_segment, 0).length == 0
     }
 
     get_best_fit(point, options, fit_function) {
@@ -501,36 +472,31 @@ class Map {
                 continue;
             }
             var distance = fit_function.call(this, option, point)
-            if (distance != 0 && (!closest || distance < closest[2])) {
-                closest = [option[0], option[1], distance, i];
+            if (distance != 0 && (!closest || distance < closest[1])) {
+                closest = [option, distance, i];
             }
         }
         if (!closest) {
             return false;
         }
         return {
-            'match': [closest[0], closest[1]],
-            'distance': closest[2],
-            'index': closest[3]
+            'match': closest[0],
+            'distance': closest[1],
+            'index': closest[2]
         }
-    }
-
-    get_distance(p1, p2) {
-        return Math.sqrt(Math.pow(p2[0] - p1[0], 2) + Math.pow(p2[1] - p1[1], 2));
     }
 
     add_population_density() {
         // simplex noise that is centered around a downtown peak
         var start_time = new Date();
-        //this.city_center = [Math.round(random(width / 2, 3 * width / 4)), Math.round(random(height / 2, 3 * height / 4))];
         var river_center = this.riverline[int(this.riverline.length / 2)];
-        var x = river_center[0];
-        var y = river_center[1];
+        var x = river_center.x;
+        var y = river_center.y
         while (this.is_water(x, y)) {
             y += 1;
         }
         y += 20; // remove the city center enough from the river that it's out of the waterline radius
-        this.city_center = [x, y];
+        this.city_center = {x, y};
 
         var longest = Math.sqrt(width ** 2 + height ** 2);
         for (var y = 0; y < height; y++) {
@@ -540,7 +506,7 @@ class Map {
                     continue
                 }
                 // distance from city center - closer means higher density
-                var distance = this.get_distance(this.city_center, [x, y]);
+                var distance = get_distance(this.city_center, {x, y});
 
                 // higher number -> "zoom out"
                 var frequency = this.elevation_scale / width;
@@ -562,9 +528,6 @@ class Map {
                 // set proportionality to city center
                 // adding 0.00001 prevents the exact city center point from being infinite
                 noise_value = noise_value * ((longest / (distance + 0.00001)) * 0.45);
-
-                //var river_distance = this.get_best_fit([x, y], this.riverline, this.get_distance)
-                //noise_value -= 4 / (river_distance ** 1.5);
 
                 this.population_density[x][y] = noise_value;
             }
@@ -627,7 +590,7 @@ class Map {
         // adds a river that runs from the NW corner
         var segment_length = 50;
         var start = this.find_axis_low(0, 0, 1, height / 2);
-        this.riverline = [start, [start[0] + 1, start[1]]];
+        this.riverline = [start, {x: start.x + 1, y: start.y}];
 
         // use graded elevation
         this.real_elevation = this.get_elevation;
@@ -639,28 +602,28 @@ class Map {
         while (i < max_points) {
             // define a 2PI/3 degree arc "line of sight" from the previous point
             var vision_range = TWO_PI / 3;
-            var start_angle = PI + atan2((this.riverline[i][1] - this.riverline[i - 1][1]), (this.riverline[i][0] - this.riverline[i - 1][0])) + vision_range;
+            var start_angle = PI + atan2((this.riverline[i].y - this.riverline[i - 1].y), (this.riverline[i].x - this.riverline[i - 1].x)) + vision_range;
 
-            var lowest = [[], height * width];
+            var lowest = [{}, height * width];
             // evaluate every point on the arc for the lowest elevation
             for (var a = start_angle; a < start_angle + vision_range; a += PI / 20) {
-                var sx = Math.round(this.riverline[i][0] + (segment_length * cos(a)));
-                var sy = Math.round(this.riverline[i][1] + (segment_length * sin(a)));
+                var sx = Math.round(this.riverline[i].x + (segment_length * cos(a)));
+                var sy = Math.round(this.riverline[i].y + (segment_length * sin(a)));
 
                 if (this.on_map(sx, sy) && this.get_elevation(sx, sy) < lowest[1]) {
                     // check for self-intersection
                     var intersecting = false;
                     // these look 3x further ahead to check for intersection
-                    var ix = Math.round(this.riverline[i][0] + (3 * segment_length * cos(a)));
-                    var iy = Math.round(this.riverline[i][1] + (3 * segment_length * sin(a)));
+                    var ix = Math.round(this.riverline[i].x + (3 * segment_length * cos(a)));
+                    var iy = Math.round(this.riverline[i].y + (3 * segment_length * sin(a)));
                     for (var r = 0; r < this.riverline.length - 2; r++) {
-                        if (this.segment_intersection(this.riverline[i], [ix, iy], this.riverline[r], this.riverline[r + 1])) {
+                        if (this.segment_intersection(this.riverline[i], {x: ix, y: iy}, this.riverline[r], this.riverline[r + 1])) {
                             intersecting = true;
                             break;
                         }
                     }
                     if (!intersecting) {
-                        lowest = [[sx, sy], this.get_elevation(sx, sy)];
+                        lowest = [{x: sx, y: sy}, this.get_elevation(sx, sy)];
                     }
                 }
             }
@@ -671,13 +634,13 @@ class Map {
             this.riverline.push(lowest[0]);
 
             // stop if the river hits the ocean or the edge of the map
-            if (this.get_elevation(lowest[0][0], lowest[0][1]) < 0 ||
+            if (this.get_elevation(lowest[0].x, lowest[0].y) < 0 ||
                     sx > width - (segment_length * 0.3) ||
                     sy > height - (segment_length * 0.3) ||
                     (sy < segment_length * 0.3 && i > 15)) {
                 success = true;
                 // make sure the river hits the end of the map
-                this.riverline.push([sx + segment_length, sy + segment_length]);
+                this.riverline.push({x: sx + segment_length, y: sy + segment_length});
                 break;
             }
             i++;
@@ -708,14 +671,14 @@ class Map {
         var max_y;
         for (var i = 0; i < this.riverline.length; i++) {
             var point = this.riverline[i];
-            if (max_x == undefined || point[0] > max_x) {
-                max_x = Math.round(point[0]);
+            if (max_x == undefined || point.x > max_x) {
+                max_x = Math.round(point.x);
             }
-            if (min_y == undefined || point[1] < min_y) {
-                min_y = Math.round(point[1]);
+            if (min_y == undefined || point.y < min_y) {
+                min_y = Math.round(point.y);
             }
-            if (max_y == undefined || point[1] > max_y) {
-                max_y = Math.round(point[1]);
+            if (max_y == undefined || point.y > max_y) {
+                max_y = Math.round(point.y);
             }
         }
         var end_time = new Date();
@@ -724,10 +687,11 @@ class Map {
         var start_time = new Date();
         // dig out the riverbed
         var radius = 150;
-        for (var y = min_y - radius; y < (max_y + radius) && y < height; y++) {
+        min_y = radius - 150 < 0 ? 0 : radius - 150;
+        for (var y = min_y; y < (max_y + radius) && y < height; y++) {
             for (var x = 0; x < (max_x + radius) && x < width; x++) {
                 // this starting distance is higher than the actual possible max
-                var match = this.get_best_fit([x, y], this.riverline, this.get_distance);
+                var match = this.get_best_fit({x, y}, this.riverline, get_distance);
                 this.elevation[x][y] -= 4 / ((match.distance + 0.00001) ** 1.5);
                 if (this.get_elevation(x, y) < 0) {
                     this.river[x][y] = true;
@@ -755,19 +719,19 @@ class Map {
             offset_denominator: 5, offset_balance: 0.2, min_segment_length: 10});
 
         // add the map's SE corner to complete the polygon
-        this.coastline.push([width-1, height-1]);
-        this.coastline.splice(0, 0, [width-1, height-1]);
+        this.coastline.push({x: width-1, y: height-1});
+        this.coastline.splice(0, 0, {x: width-1, y: height-1});
 
         // knowing the smallest coord means an easier elevation computation below
         var min_x;
         var min_y;
         for (var i = 0; i < this.coastline.length; i++) {
             var point = this.coastline[i];
-            if (min_x == undefined || point[0] < min_x) {
-                min_x = Math.round(point[0]);
+            if (min_x == undefined || point.x < min_x) {
+                min_x = Math.round(point.x);
             }
-            if (min_y == undefined || point[1] < min_y) {
-                min_y = Math.round(point[1]);
+            if (min_y == undefined || point.y < min_y) {
+                min_y = Math.round(point.y);
             }
         }
         var end_time = new Date();
@@ -784,7 +748,7 @@ class Map {
                 for (var j = 0; j < this.coastline.length - 1; j++) {
                     // check if the ray from x, y to the border intersects the line defined by this.coastline[j] -> this.coastline[j + 1]
                     var result = this.segment_intersection(
-                        [x, y], [width, y],
+                        {x, y}, {x: width, y: y},
                         this.coastline[j], this.coastline[j + 1]);
 
                     // while we're here, calculate the distance between this
@@ -795,12 +759,12 @@ class Map {
                     // don't do this calculation with the final (corner) point
                     // because that's supposed to just be "out to sea"
                     if (j < this.coastline.length - 2) {
-                        var h_distance = this.get_distance(this.coastline[j + 1], [x, y]);
+                        var h_distance = get_distance(this.coastline[j + 1], {x, y});
                         distance = h_distance < distance ? h_distance : distance;
                     }
 
                     if (result) {
-                        hits.push([this.coastline[j], this.coastline[j + 1]]);
+                        hits.push({x: this.coastline[j], y: this.coastline[j + 1]});
                     }
                 }
                 // if there are an odd number of hits, then it's inside the ocean polygon
@@ -819,7 +783,7 @@ class Map {
     segment_intersection(p1, p2, p3, p4) {
         // check if two line segments intersect
         var threshold = 1;
-        if (this.get_distance(p2, p3) < threshold) {
+        if (get_distance(p2, p3) < threshold) {
             return false;
         }
 
@@ -829,22 +793,22 @@ class Map {
 
     counterclockwise(a, b, c) {
         // utility function for determining if line segments intersect
-        return (c[1] - a[1]) * (b[0] - a[0]) > (b[1] - a[1]) * (c[0] - a[0]);
+        return (c.y - a.y) * (b.x - a.x) > (b.y - a.y) * (c.x - a.x);
     }
 
     find_axis_low(x, y, axis, range) {
         // utility function for picking lowpoints on the edges of the map
-        var low = [[x, y], 1]; // the lowest elevation point found in range
-        var cp = [x, y]; // stores the current point being investigated
+        var low = [{x, y}, 1]; // the lowest elevation point found in range
+        var cp = {x, y}; // stores the current point being investigated
 
         for (var i = 0; i < range; i++) {
             cp[axis] += 1;
-            if (!this.on_map(...cp)) {
+            if (!this.on_map(cp.x, cp.y)) {
                 break;
             }
-            var current_elevation = this.get_elevation(cp[0], cp[1]);
-            if (current_elevation < low[1]) {
-                low = [[cp[0], cp[1]], current_elevation];
+            var current_elevation = this.get_elevation(cp.x, cp.y);
+            if (current_elevation < low.y) {
+                low = [cp, current_elevation];
             }
         }
         return low[0];
@@ -865,45 +829,37 @@ class Map {
         }
         var start = curve[params.index_1];
         var end = curve[params.index_2];
-        var segment_length = Math.sqrt(Math.pow(end[0] - start[0], 2) + Math.pow(end[1] - start[1], 2));
+        var segment_length = get_distance(start, end);
         if (segment_length < params.min_segment_length) {
             return curve;
         }
-        var midpoint = [Math.round((start[0] + end[0]) / 2),
-                        Math.round((start[1] + end[1]) / 2)];
+        var midpoint = {x: Math.round((start.x + end.x) / 2),
+                        y: Math.round((start.y + end.y) / 2)};
 
         // equation of the perpendicular line is y = mx + b
-        var m = -1 * (start[0] - end[0]) / (start[1] - end[1]);
-        var b = midpoint[1] - (m * midpoint[0])
-        var x = midpoint[0];
+        var m = -1 * (start.x - end.x) / (start.y - end.y);
+        var b = midpoint.y - (m * midpoint.x)
+        var x = midpoint.x;
         var y;
 
-        var optimal = [midpoint[0], midpoint[1], this.get_elevation(midpoint[0], midpoint[1])];
+        var optimal = [midpoint, this.get_elevation(midpoint.x, midpoint.y)];
         var offset = Math.round(segment_length / params.offset_denominator);
         var perpendicular_start = offset * (0 - params.offset_balance);
         var perpendicular_end = offset * (1 - params.offset_balance);
 
-        // the default comparison operation is to check for the lowest elevation along the perpendicular path
-        if (!params.comparison) {
-            for (var i = perpendicular_start; i < perpendicular_end; i++) {
-                var nx = Math.round(x + (i / Math.abs(i)) * Math.sqrt(i ** 2 / (1 + m ** 2)));
-                y = Math.round((m * nx) + b);
-                if (!this.on_map(nx, y)) {
-                    continue;
-                }
-                var elevation = this.get_elevation(nx, y);
-                if (elevation < optimal[2]) {
-                    optimal = [nx, y, elevation];
-                }
+        // check for the lowest elevation along the perpendicular path
+        for (var i = perpendicular_start; i < perpendicular_end; i++) {
+            var nx = Math.round(x + (i / Math.abs(i)) * Math.sqrt(i ** 2 / (1 + m ** 2)));
+            y = Math.round((m * nx) + b);
+            if (!this.on_map(nx, y)) {
+                continue;
+            }
+            var elevation = this.get_elevation(nx, y);
+            if (elevation < optimal[1]) {
+                optimal = [{x: nx, y: y}, elevation];
             }
         }
-        else {
-            optimal = params.comparison.call(this, midpoint, start, end, perpendicular_start, perpendicular_end, m, b);
-        }
-        if (!optimal) {
-            optimal = midpoint;
-        }
-        var displaced = [optimal[0], optimal[1]];
+        var displaced = optimal[0];
 
         curve.splice(params.index_2, 0, displaced);
 
