@@ -46,8 +46,8 @@ class Map {
 
         // roads
         this.snap_radius = int(params.snap || 6); // connect trailing roads to nearby roads
-        this.min_segment_length = params.min || 5;
-        this.max_segment_length = params.max || 50;
+        this.min_segment_length = int(params.min) || 5;
+        this.max_segment_length = int(params.max) || 50;
         this.perterbation = float(params.perterbation || 0); // angle range for roads
 
         // ----- Map components ------------\\
