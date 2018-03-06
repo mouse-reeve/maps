@@ -13,7 +13,7 @@ class ConnorMouseQuadtreeTree {
     insert(segment) {
         // check if it is in bounds
         segment.depth = segment.depth + 1 || 1;
-        if (!segment.isContainedWithin(this.x, this.y, this.width, this.height)) {
+        if (!segment.isInQuadrant({x: this.x, y: this.y}, this.width, this.height)) {
             return false;
         }
 
@@ -69,16 +69,8 @@ class ConnorMouseQuadtreeTree {
             for (var c = 0; c < this.children.length; c++) {
                 var child = this.children[c];
 
-                // get the perpendicular  
-                var dx = radius * cos(segment.theta + HALF_PI);
-                var dy = radius * sin(segment.theta + HALF_PI); 
-
                 // check if segment is within rectangular box around reference segment
-                // TODO: this will fail because the rectablge won't be along the axis of the segment
-                var isContained = child.isContainedWithin(segment.p1.x - dx, segment.p1.y - dy, 2 * radius, segment.length) ||
-                                  child.isContainedWithin(segment.p1.x, segment.p1.y, radius) ||
-                                  child.isContainedWithin(segment.p2.x, segment.p2.y, radius);
-
+                var isContained = child.isFuzzilyIntersecting(segment, radius);
                 if (isContained)
                     segments.push(child);
             }
@@ -87,7 +79,7 @@ class ConnorMouseQuadtreeTree {
 
         // if we are here, the children are quadtrees and we will query them
         // check if the segment is anywhere in this quardrant
-        if (segment.isContainedWithin(this.x, this.y, this.width, this.height)) {
+        if (segment.isInQuadrant({x: this.x, y: this.y}, this.width, this.height)) {
             return segments;
         }
 
@@ -123,43 +115,77 @@ class Segment {
         this.length = this.get_distance(p1, p2);
     }
 
-    isContainedWithin(x, y, widthOrRadius, h) {
-        // we intentionally exclude segments that share endpoints
-        if ((x == this.p1.x && y == this.p1.y) || (x == this.p2.x && y == this.p2.y))
-            return false;
-        if (h === undefined)
-            return this.isContainedWithinCircle(x, y, widthOrRadius);
-
-        return this.isContainedWithinRect(x, y, widthOrRadius, h);
+    getPoint(idx) {
+        return [this.p1, this.p2][idx];
     }
 
-    isContainedWithinRect(x, y, w, h) {
-        // check if either points are within this plane
-        if ((this.p1.x >= x && this.p1.x < x + w && this.p1.y >= y && this.p1.y < y + h) ||
-            (this.p2.x >= x && this.p2.x < x + w && this.p2.y >= y && this.p2.y < y + h))
-            return true;
-            
+    isFuzzilyIntersecting(segment, radius) {
+        // is whint ;)
+
+        if (radius === 0) return this.segment_intersection(segment.p1, segment.p2, this.p1, this.p2);
+
+        return this.isFuzzilyIntersectingRect(segment, radius) ||
+               this.isFuzzilyIntersectingCircle(segment.p1, radius) ||
+               this.isFuzzilyIntersectingCircle(segment.p2, radius);
+    }
+
+    isInQuadrant(origin, w, h) {
+        return this.isFuzzilyIntersecting(new Segment(
+            {x: origin.x, y: origin.y + h/2},
+            {x: origin.x + w, y: origin.y + h/2},
+        ), h/2)
+    }
+
+    isFuzzilyIntersectingRect(segment, radius) {
+        // establish bounding points
+        var p1 = {
+            x: segment.p1.x + radius * cos(segment.theta + PI/2),
+            y: segment.p1.y + radius * sin(segment.theta + PI/2),
+        };
+        var p2 = {
+            x: segment.p2.x + radius * cos(segment.theta + PI/2),
+            y: segment.p2.y + radius * sin(segment.theta + PI/2),
+        };
+        var p3 = {
+            x: segment.p2.x - radius * cos(segment.theta + PI/2),
+            y: segment.p2.y - radius * sin(segment.theta + PI/2),
+        };
+        var p4 = {
+            x: segment.p1.x - radius * cos(segment.theta + PI/2),
+            y: segment.p1.y - radius * sin(segment.theta + PI/2),
+        };
+
         // construct bounding vectors of plane
         const bounds = [
-            [{x, y}, {x: x+w, y}],
-            [{x: x+w, y}, {x: x+w, y: y+h}],
-            [{x: x+w, y: y+h}, {x, y: y+h}],
-            [{x, y: y+h}, {x, y}],
+            [p1, p2],
+            [p2, p3],
+            [p3, p4],
+            [p4, p1],
         ];
+
+        // lets raycast to figure out if the points are within the rectangular area!!!!!!!
+        var maxX = [p1, p2, p3, p4].reduce((acc, p) => p.x > acc ? p.x : acc, 0);
+        for (var i = 0; i < 2; i++) {
+            var raySegment = [this.getPoint(i), {...this.getPoint(i), x: maxX + 1}];
+            var nIntersections = bounds.reduce((acc, b) => this.segment_intersection(raySegment[0], raySegment[1], b[0], b[1]) ? acc + 1 : acc, 0)
+            if (nIntersections % 2 == 1) {
+                return true;
+            }
+        }
 
         // check intersection of bounding vectors
         for (var v = 0; v < bounds.length; v++) {
-            const isIntersecting = this.segment_intersection(bounds[v][0], bounds[v][1], this.p1, this.p2);
+            const intersectsFuzzily = this.segment_intersection(bounds[v][0], bounds[v][1], this.p1, this.p2);
 
-            if (isIntersecting) return true;
+            if (intersectsFuzzily) return true;
         }
 
         return false;
     }
 
-    isContainedWithinCircle(x, y, r) {
-        const h = this.get_distance(this.p1, {x, y});
-        const theta = this.get_corner_angle({x, y}, this.p1, this.p2);
+    isFuzzilyIntersectingCircle(p, r) {
+        const h = this.get_distance(this.p1, p);
+        const theta = this.get_corner_angle(p, this.p1, this.p2);
         const o = h * sin(theta);
 
         return o <= r;
