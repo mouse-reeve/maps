@@ -627,7 +627,7 @@ class Map {
                 }
             }
             // the river has failed, there will be no river
-            if (lowest[0].length == 0) {
+            if (!lowest[0].x || !lowest[0].y) {
                 break;
             }
             this.riverline.push(lowest[0]);
