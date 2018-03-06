@@ -65,6 +65,7 @@ class ConnorMouseQuadtreeTree {
 
         // are the children of this ConnorMouseQuadtreeTree leafs or another CMQTT?
         if (!this.is_branch()) {
+
             // which children are within the radius?
             for (var c = 0; c < this.children.length; c++) {
                 var child = this.children[c];
@@ -129,11 +130,12 @@ class Segment {
                this.isFuzzilyIntersectingCircle(segment.p2, radius);
     }
 
-    isInQuadrant(origin, w, h) {
+    isInQuadrant(origin, w, h, radius) {
+        if (radius === undefined) radius = 0;
         return this.isFuzzilyIntersecting(new Segment(
-            {x: origin.x, y: origin.y + h/2},
-            {x: origin.x + w, y: origin.y + h/2},
-        ), h/2)
+            {x: origin.x - radius, y: origin.y + h/2},
+            {x: origin.x + w + radius, y: origin.y + h/2},
+        ), h/2 + radius);
     }
 
     isFuzzilyIntersectingRect(segment, radius) {
