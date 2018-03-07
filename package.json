@@ -1,0 +1,23 @@
+{
+  "name": "map",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mouse-reeve/maps.git"
+  },
+  "author": "Mouse Reeve",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mouse-reeve/maps/issues"
+  },
+  "homepage": "https://github.com/mouse-reeve/maps#readme",
+  "dependencies": {
+    "express": "^4.16.2"
+  }
+}
