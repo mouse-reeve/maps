@@ -18,6 +18,11 @@
   },
   "homepage": "https://github.com/mouse-reeve/maps#readme",
   "dependencies": {
-    "express": "^4.16.2"
+    "express": "^4.16.2",
+    "seedrandom": "^2.4.3",
+    "simplex-noise": "^2.4.0"
+  },
+  "devDependencies": {
+    "nodemon": "^1.17.1"
   }
 }

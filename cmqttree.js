@@ -1,4 +1,6 @@
 const max_leaves = 5;
+const get_distance = require('./utilities')
+
 class ConnorMouseQuadtreeTree {
 
     // (x, y) is the upper left hand corner
@@ -112,7 +114,7 @@ class Segment {
         this.id = `${p1.y},${p1.x},${p2.x},${p2.y}`;
         this.p1 = p1;
         this.p2 = p2;
-        this.theta = atan2(p1.y - p2.y, p1.x - p2.x);
+        this.theta = Math.atan2(p1.y - p2.y, p1.x - p2.x);
         this.length = get_distance(p1, p2);
     }
 
@@ -141,20 +143,20 @@ class Segment {
     isFuzzilyIntersectingRect(segment, radius) {
         // establish bounding points
         var p1 = {
-            x: segment.p1.x + radius * cos(segment.theta + PI/2),
-            y: segment.p1.y + radius * sin(segment.theta + PI/2),
+            x: segment.p1.x + radius * Math.cos(segment.theta + Math.PI/2),
+            y: segment.p1.y + radius * Math.sin(segment.theta + Math.PI/2),
         };
         var p2 = {
-            x: segment.p2.x + radius * cos(segment.theta + PI/2),
-            y: segment.p2.y + radius * sin(segment.theta + PI/2),
+            x: segment.p2.x + radius * Math.cos(segment.theta + Math.PI/2),
+            y: segment.p2.y + radius * Math.sin(segment.theta + Math.PI/2),
         };
         var p3 = {
-            x: segment.p2.x - radius * cos(segment.theta + PI/2),
-            y: segment.p2.y - radius * sin(segment.theta + PI/2),
+            x: segment.p2.x - radius * Math.cos(segment.theta + Math.PI/2),
+            y: segment.p2.y - radius * Math.sin(segment.theta + Math.PI/2),
         };
         var p4 = {
-            x: segment.p1.x - radius * cos(segment.theta + PI/2),
-            y: segment.p1.y - radius * sin(segment.theta + PI/2),
+            x: segment.p1.x - radius * Math.cos(segment.theta + Math.PI/2),
+            y: segment.p1.y - radius * Math.sin(segment.theta + Math.PI/2),
         };
 
         // construct bounding vectors of plane
@@ -188,7 +190,7 @@ class Segment {
     isFuzzilyIntersectingCircle(p, r) {
         const h = get_distance(this.p1, p);
         const theta = this.get_corner_angle(p, this.p1, this.p2);
-        const o = h * sin(theta);
+        const o = h * Math.sin(theta);
 
         return o <= r;
     }
@@ -219,4 +221,9 @@ class Segment {
         return Math.acos(((b ** 2) + (c ** 2) - (a ** 2)) / (2 * b * c));
     }
 
+}
+
+module.exports = {
+    'ConnorMouseQuadtreeTree': ConnorMouseQuadtreeTree,
+    'Segment': Segment,
 }
