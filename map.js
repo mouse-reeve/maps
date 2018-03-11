@@ -198,8 +198,8 @@ class Map {
                     bridge_length++
                 }
                 bridge_length += 7
-                x = point.x + (bridge_length * Math.cos(a))
-                y = point.y + (bridge_length * Math.sin(a))
+                x = Math.round(point.x + (bridge_length * Math.cos(a)))
+                y = Math.round(point.y + (bridge_length * Math.sin(a)))
                 if (bridge_length < this.max_segment_length && this.validate_bridge_point([point, {x, y}])) {
                     options.push({x, y})
                 }
@@ -213,7 +213,7 @@ class Map {
 
         var fit_function = function(p1, p2) {
             // needs to return smaller values for more desirable results, and we want least elevation change
-            return Math.abs(this.get_elevation(p1.x, p1.y) - this.get_elevation(p2.x, p2.y))
+            return 1 + Math.abs(this.get_elevation(p1.x, p1.y) - this.get_elevation(p2.x, p2.y))
         }
         var match = this.get_best_fit(point, options, fit_function)
 
@@ -280,7 +280,7 @@ class Map {
     add_population_density() {
         // simplex noise that is centered around a downtown peak
         var start_time = new Date()
-        var river_center = this.riverline[Number(this.riverline.length / 2)]
+        var river_center = this.has_river ? this.riverline[Math.round(this.riverline.length / 2)] : {x: this.width - (this.width / 3), y: this.height - (this.height / 3)}
         var x = river_center.x
         var y = river_center.y
         while (this.is_water(x, y)) {
