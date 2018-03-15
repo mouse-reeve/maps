@@ -19,6 +19,7 @@
   "homepage": "https://github.com/mouse-reeve/maps#readme",
   "dependencies": {
     "express": "^4.16.2",
+    "express-handlebars": "^3.0.0",
     "seedrandom": "^2.4.3",
     "simplex-noise": "^2.4.0"
   },
