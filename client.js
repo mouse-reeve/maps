@@ -5,13 +5,13 @@ const hbs = require('express-handlebars')
 const app = express()
 app.engine( 'hbs', hbs( {
   extname: 'hbs',
-  defaultLayout: 'index.html',
   layoutsDir: __dirname + '/views/',
 } ) )
 app.set( 'view engine', 'hbs' )
+var path = require('path')
 
+app.use(express.static(path.join(__dirname, 'public')))
 app.get('/', function(request, response) {
-    console.log('received request')
     // passes the exact same url params to the map server
     var url = 'http://localhost:2000' + request.url
 
@@ -30,5 +30,10 @@ app.get('/', function(request, response) {
         });
     })
 })
+
+app.get('/sample/', function(request, response) {
+    return response.render('sample')
+})
+
 app.listen(2200, () => console.log('Map client running on port 2200'))
 

@@ -28,8 +28,8 @@ class Map {
         this.elevation_noisiness = 3 // increase for less smooth elevation boundaries
 
         // roads
-        this.snap_radius = Number(params.snap || 6) // connect trailing roads to nearby roads
-        this.min_segment_length = Number(params.min) || 5
+        this.snap_radius = Number(params.snap || 20) // connect trailing roads to nearby roads
+        this.min_segment_length = Number(params.min) || 15
         this.max_segment_length = Number(params.max) || 50
         this.perterbation = Number(params.perterbation || 0) // angle range for roads
 
@@ -60,6 +60,8 @@ class Map {
             'ocean': this.ocean,
             'population': this.population_density,
             'roads': this.roads,
+            'width': this.width,
+            'height': this.height,
         }
     }
 

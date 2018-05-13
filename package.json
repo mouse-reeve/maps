@@ -24,6 +24,6 @@
     "simplex-noise": "^2.4.0"
   },
   "devDependencies": {
-    "nodemon": "^1.17.1"
+    "nodemon": "^1.17.2"
   }
 }
