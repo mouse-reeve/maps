@@ -10,9 +10,10 @@ class Map {
     constructor(seed, params) {
         seed = seed || (new Date).getTime()
         random = new Random(seed)
+        console.log(seed);
 
         // I don't know WHAT the deal is with p5 noise() so we're using this instead
-        var gen = new SimplexNoise(random)
+        var gen = new SimplexNoise(random.random)
         this.get_noise = function (nx, ny) {
           // Rescale from -1.0:+1.0 to 0.0:1.0
           return gen.noise2D(nx, ny) / 2 + 0.5
@@ -148,7 +149,7 @@ class Map {
         var theta = Math.atan2(road[ultimate].y - road[penultimate].y, road[ultimate].x - road[penultimate].x)
 
         // ----- branch from the road in both directions
-        var decrement = random.random(0.5, 1.1)
+        var decrement = random.random() + 0.5//, 1.1)
         for (var i = -1; i <= 1; i += 2) {
             // perpendicular slope
             var perpendicular_theta = theta + (i * (Math.PI / 2))
