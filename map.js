@@ -103,14 +103,14 @@ class Map {
         }
         pop()
         */
-        /* for debugging neighborhoods
+        // for debugging neighborhoods
         push();
         for (var i = 0; i < this.population_peaks.length; i++) {
             fill((i/this.population_peaks.length) * 255);
             ellipse(this.population_peaks[i].x, this.population_peaks[i].y, 10, 10);
         }
         pop()
-        */
+        //*/
 
         this.compass_rose();
         this.draw_scale();
@@ -543,6 +543,13 @@ class Map {
         }
         this.population_peaks.sort(function (a, b) { return a[2] > b[2] ? -1 : 1; });
         this.city_center = this.population_peaks[0]
+        for (var i = 0; i < this.population_peaks.length; i++) {
+            console.log(i);
+            if (!this.on_edge(this.population_peaks[i].x, this.population_peaks.y)) {
+                this.city_center = this.population_peaks[i];
+                break;
+            }
+        }
         var end_time = new Date();
         console.log('find local maxima', (end_time - start_time) / 1000)
     }
