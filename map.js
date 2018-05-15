@@ -69,8 +69,6 @@ class Map {
         this.add_elevation();
         this.add_ocean();
         this.add_river();
-        //this.elevation = data;
-        //this.riverline = river_data;
         this.add_population_density();
         this.add_roads();
 
@@ -109,7 +107,7 @@ class Map {
         push();
         for (var i = 0; i < this.population_peaks.length; i++) {
             fill((i/this.population_peaks.length) * 255);
-            ellipse(this.population_peaks[i][0], this.population_peaks[i][1], 10, 10);
+            ellipse(this.population_peaks[i].x, this.population_peaks[i].y, 10, 10);
         }
         pop()
         */
@@ -344,6 +342,7 @@ class Map {
         if (segment_length < this.min_segment_length) {
             return;
         }
+
         // add to and/or fork off new road roads
         var road_perterbation = this.perterbation;
         var fork_perterbation = this.perterbation / 2;
@@ -495,7 +494,6 @@ class Map {
             y += 1;
         }
         y += 20; // remove the city center enough from the river that it's out of the waterline radius
-        this.city_center = {x, y};
 
         var longest = Math.sqrt(width ** 2 + height ** 2);
         for (var y = 0; y < height; y++) {
@@ -504,29 +502,13 @@ class Map {
                     this.population_density[x][y] = -1;
                     continue
                 }
-                // distance from city center - closer means higher density
-                var distance = get_distance(this.city_center, {x, y});
-
                 // higher number -> "zoom out"
                 var frequency = this.elevation_scale / width;
 
                 var nx = x * frequency - 0.5;
                 var ny = y * frequency - 0.5;
 
-                // noisiness of edges
-                var octaves = 1;
-
-                var noise_value = 0;
-                var divisor = 1;
-                for (var i = 1; i <= octaves; i = i * 2) {
-                    noise_value += 1 / i * this.get_noise(i * nx, i * ny);
-                    divisor += 1 / i;
-                }
-                noise_value = noise_value / divisor; // keeps the value between 0 and 1
-
-                // set proportionality to city center
-                // adding 0.00001 prevents the exact city center point from being infinite
-                noise_value = noise_value * ((longest / (distance + 0.00001)) * 0.45);
+                var noise_value = this.get_noise(nx, ny);
 
                 this.population_density[x][y] = noise_value;
             }
@@ -553,11 +535,14 @@ class Map {
                     }
                 }
                 if (higher) {
-                    this.population_peaks.push([x, y, this.get_population_density(x, y)]);
+                    var point = {x, y};
+                    point.density = this.get_population_density(x, y);
+                    this.population_peaks.push(point);
                 }
             }
         }
         this.population_peaks.sort(function (a, b) { return a[2] > b[2] ? -1 : 1; });
+        this.city_center = this.population_peaks[0]
         var end_time = new Date();
         console.log('find local maxima', (end_time - start_time) / 1000)
     }
