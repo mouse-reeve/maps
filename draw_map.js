@@ -17,6 +17,9 @@ class MapDraw {
         if (layer.indexOf('roads') > -1) {
             this.draw_roads();
         }
+        if (layer.indexOf('hoods') > -1) {
+            this.draw_neighborhoods();
+        }
 
         /* Handy for debugging the coast algorithms
         push();
@@ -36,16 +39,47 @@ class MapDraw {
         pop()
         */
         // for debugging neighborhoods
+        /*
         push();
         for (var i = 0; i < this.data.population_peaks.length; i++) {
             fill((i/this.data.population_peaks.length) * 255);
             ellipse(this.data.population_peaks[i].x, this.data.population_peaks[i].y, 10, 10);
         }
         pop();
-        //*/
+        */
 
         this.compass_rose();
         this.draw_scale();
+    }
+
+    draw_neighborhoods() {
+        push();
+        for (var y = 0; y < height; y++) {
+            for (var x = 0; x < width; x++) {
+                var point_color;
+                if (this.is_water(x, y)) {
+                    point_color = white;
+                } else {
+                    var shade = 225 / this.get_neighborhood(x, y) - 10;
+                    point_color = color(shade, shade, 255);
+                    var border_value = this.color_border(x, y, this.get_neighborhood, 1);
+                    if (!!border_value) {
+                        point_color = black;
+                    }
+                }
+                stroke(point_color);
+                point(x, y);
+            }
+        }
+        pop();
+
+        push();
+        for (var i = 0; i < this.data.population_peaks.length; i++) {
+            fill((i/this.data.population_peaks.length) * 255);
+            ellipse(this.data.population_peaks[i].x, this.data.population_peaks[i].y, 10, 10);
+        }
+        pop();
+
     }
 
     draw_cmqtt(tree) {
@@ -113,7 +147,7 @@ class MapDraw {
                     }
                     point_color = colors.topo[color_bucket];
 
-                    var border_value = this.topo_border(x, y);
+                    var border_value = this.color_border(x, y, this.get_elevation, 50);
                     if (!!border_value) {
                         var bucket1 = Math.floor(border_value[0] * 100 / color_gap);
                         var bucket2 = Math.floor(border_value[1] * 100 / color_gap);
@@ -128,16 +162,16 @@ class MapDraw {
         pop();
     }
 
-    topo_border(x, y) {
+    color_border(x, y, func, granularity) {
         // checks if a point is in a different elevation "bucket" than its SE neighbors
-        var granularity = 50;
+        granularity = granularity || 50;
         for (var i = 0; i <= 1; i++) {
             for (var j = 0; j <= 1; j++) {
                 if (this.on_map(x + i, y + j)) {
-                    var elev1 = Math.floor(this.get_elevation(x, y) * granularity);
-                    var elev2 = Math.floor(this.get_elevation(x + i, y + j) * granularity);
+                    var elev1 = Math.floor(func.call(this, x, y) * granularity);
+                    var elev2 = Math.floor(func.call(this, x + i, y + j) * granularity);
                     if (elev1 != elev2) {
-                        return [this.get_elevation(x, y), this.get_elevation(x + i, y + j)];
+                        return [func.call(this, x, y), func.call(this, x + i, y + j)];
                     }
                 }
             }
@@ -263,11 +297,6 @@ class MapDraw {
         }
     }
 
-    on_map(x, y) {
-        // is the point on the map?
-        return x >= 0 && y >= 0 && x < width && y < height;
-    }
-
 
     get_population_density(x, y) {
         x = Math.round(x);
@@ -277,4 +306,18 @@ class MapDraw {
         }
     }
 
+
+    get_neighborhood(x, y) {
+        x = Math.round(x);
+        y = Math.round(y);
+        if (this.on_map(x, y)) {
+            return this.data.neighborhoods[x][y];
+        }
+    }
+
+
+    on_map(x, y) {
+        // is the point on the map?
+        return x >= 0 && y >= 0 && x < width && y < height;
+    }
 }

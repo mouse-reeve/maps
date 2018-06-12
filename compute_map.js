@@ -30,6 +30,7 @@ class MapData {
         this.riverline = [];
         this.river = this.create_matrix();
         this.population_density = this.create_matrix();
+        this.neighborhoods = this.create_matrix();
         this.population_peaks = [];
         this.roads = [];
         this.roads_cmqtt = new ConnorMouseQuadtreeTree(0, 0, width, height);
@@ -41,6 +42,7 @@ class MapData {
         this.add_ocean();
         this.add_river();
         this.add_population_density();
+        this.add_neighborhoods();
         this.add_roads();
 
         return {
@@ -52,6 +54,7 @@ class MapData {
             river: this.river,
             population_density: this.population_density,
             population_peaks: this.population_peaks,
+            neighborhoods: this.neighborhoods,
             roads: this.roads,
             roads_cmqtt: this.roads_cmqtt,
         };
@@ -338,6 +341,16 @@ class MapData {
         }
         var end_time = new Date();
         console.log('find local maxima', (end_time - start_time) / 1000);
+    }
+
+    add_neighborhoods() {
+        for (var y = 0; y < height; y++) {
+            for (var x = 0; x < width; x++) {
+                // find the closest neighborhood to this point
+                var match = this.get_best_fit({x, y}, this.population_peaks, get_distance);
+                this.neighborhoods[x][y] = match.index;
+            }
+        }
     }
 
     get_population_density(x, y) {
