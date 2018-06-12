@@ -248,18 +248,7 @@ class MapDraw {
     }
 
 
-    is_water(x, y, radius) {
-        if (radius) {
-            for (var a = 0; a < TWO_PI; a += PI / 6) {
-                for (var r = 0; r < radius; r++) {
-                    var nx = x + r * cos(a);
-                    var ny = y + r * sin(a);
-                    if (this.get_elevation(nx, ny) < 0) {
-                        return true;
-                    }
-                }
-            }
-        }
+    is_water(x, y) {
         return this.get_elevation(x, y) < 0;
     }
 
