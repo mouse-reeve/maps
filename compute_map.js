@@ -344,6 +344,7 @@ class MapData {
     }
 
     add_neighborhoods() {
+        var start_time = new Date();
         for (var y = 0; y < height; y++) {
             for (var x = 0; x < width; x++) {
                 // find the closest neighborhood to this point
@@ -351,6 +352,8 @@ class MapData {
                 this.neighborhoods[x][y] = match.index;
             }
         }
+        var end_time = new Date();
+        console.log('designate neighborhoods', (end_time - start_time) / 1000);
     }
 
     get_population_density(x, y) {
