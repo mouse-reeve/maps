@@ -3,7 +3,7 @@ var white;
 
 function setup() {
     var container = document.getElementById('map');
-    var canvas = createCanvas(600, 300);
+    var canvas = createCanvas(850, 400);
     canvas.parent(container);
 
     // parse URL get params

@@ -80,6 +80,22 @@ class MapDraw {
         }
         pop();
 
+        this.label_neighborhoods();
+    }
+
+    label_neighborhoods() {
+        for (var i = 0; i < this.data.population_peaks.length; i++) {
+            push();
+            textSize(15);
+            textFont('Ariel');
+            fill(black);
+            strokeWeight(3);
+            stroke(lerpColor(white, black, 0.2));
+
+            var name = 'Neighborhood ' + i;
+            text(name, this.data.population_peaks[i].x, this.data.population_peaks[i].y);
+            pop();
+        }
     }
 
     draw_cmqtt(tree) {
@@ -198,6 +214,7 @@ class MapDraw {
         }
         pop();
         this.draw_roads(colors);
+        this.label_neighborhoods();
     }
 
 
