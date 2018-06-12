@@ -15,7 +15,7 @@ function setup() {
     }
     var seed = params.seed || Math.floor(Math.random() * 10000);
     var layer = params.layer || 'topo';
-    console.log(seed)
+    console.log(seed);
 
     // establish color globals now that things are initialized
     black = color(0);
@@ -29,7 +29,7 @@ function setup() {
 
 class Map {
     constructor(seed, params) {
-        seed = seed || (new Date).getTime();
+        seed = seed || (new Date()).getTime();
         randomSeed(seed);
 
         // I don't know WHAT the deal is with p5 noise() so we're using this instead
@@ -37,7 +37,7 @@ class Map {
         this.get_noise = function (nx, ny) {
           // Rescale from -1.0:+1.0 to 0.0:1.0
           return gen.noise2D(nx, ny) / 2 + 0.5;
-        }
+        };
 
         // ----- Controls -------------\\
         this.elevation_range = 1.5; // increase for a smaller elevation range
@@ -109,7 +109,7 @@ class Map {
             fill((i/this.population_peaks.length) * 255);
             ellipse(this.population_peaks[i].x, this.population_peaks[i].y, 10, 10);
         }
-        pop()
+        pop();
         //*/
 
         this.compass_rose();
@@ -124,7 +124,7 @@ class Map {
         noFill();
         stroke(black);
         rect(tree.x, tree.y, tree.width, tree.height);
-        pop()
+        pop();
         for (var c = 0; c < tree.children.length; c++) {
             if (tree.children[c] instanceof ConnorMouseQuadtreeTree) {
                 this.draw_cmqtt(tree.children[c]);
@@ -298,7 +298,7 @@ class Map {
             }
         }
         var end_time = new Date();
-        console.log('elevation map', (end_time - start_time) / 1000)
+        console.log('elevation map', (end_time - start_time) / 1000);
     }
 
     get_river(x, y) {
@@ -333,11 +333,11 @@ class Map {
         }
 
         var end_time = new Date();
-        console.log('adding roads', (end_time - start_time) / 1000)
+        console.log('adding roads', (end_time - start_time) / 1000);
     }
 
     continue_road(road, segment_length, count) {
-        if (count == undefined) count = 1;
+        if (count === undefined) count = 1;
 
         if (segment_length < this.min_segment_length) {
             return;
@@ -384,13 +384,13 @@ class Map {
         if (!next.end) {
             this.continue_road(road, segment_length, count + 1);
         }
-        return road
+        return road;
     }
 
     next_road_segment(point, distance, theta, perterbation) {
         // find a suitable continuation point
 
-        var options = []
+        var options = [];
         for (var a = theta - perterbation; a <= theta + perterbation; a += PI / 24) {
             var x = point.x + (distance * cos(a));
             var y = point.y + (distance * sin(a));
@@ -421,7 +421,7 @@ class Map {
         var fit_function = function(p1, p2) {
             // needs to return smaller values for more desirable results, and we want least elevation change
             return Math.abs(this.get_elevation(p1.x, p1.y) - this.get_elevation(p2.x, p2.y));
-        }
+        };
         var match = this.get_best_fit(point, options, fit_function);
 
         // check all the roads for options within the radius
@@ -446,7 +446,7 @@ class Map {
         }
 
         var cmqtt_segment = new Segment(segment[0], segment[1]);
-        return this.roads_cmqtt.query(cmqtt_segment, 0).length == 0
+        return this.roads_cmqtt.query(cmqtt_segment, 0).length === 0;
     }
 
     validate_road_point(segment) {
@@ -457,7 +457,7 @@ class Map {
         }
 
         var cmqtt_segment = new Segment(segment[0], segment[1]);
-        return this.roads_cmqtt.query(cmqtt_segment, 0).length == 0
+        return this.roads_cmqtt.query(cmqtt_segment, 0).length === 0;
     }
 
     get_best_fit(point, options, fit_function) {
@@ -469,8 +469,8 @@ class Map {
                 // handles arrays with deleted entries set to undefined
                 continue;
             }
-            var distance = fit_function.call(this, option, point)
-            if (distance != 0 && (!closest || distance < closest[1])) {
+            var distance = fit_function.call(this, option, point);
+            if (distance !== 0 && (!closest || distance < closest[1])) {
                 closest = [option, distance, i];
             }
         }
@@ -481,7 +481,7 @@ class Map {
             'match': closest[0],
             'distance': closest[1],
             'index': closest[2]
-        }
+        };
     }
 
     add_population_density() {
@@ -489,7 +489,7 @@ class Map {
         var start_time = new Date();
         var river_center = this.riverline[int(this.riverline.length / 2)];
         var x = river_center.x;
-        var y = river_center.y
+        var y = river_center.y;
         while (this.is_water(x, y)) {
             y += 1;
         }
@@ -500,7 +500,7 @@ class Map {
             for (var x = 0; x < width; x++) {
                 if (this.is_water(x, y)) {
                     this.population_density[x][y] = -1;
-                    continue
+                    continue;
                 }
                 // higher number -> "zoom out"
                 var frequency = this.elevation_scale / width;
@@ -514,7 +514,7 @@ class Map {
             }
         }
         var end_time = new Date();
-        console.log('set population density', (end_time - start_time) / 1000)
+        console.log('set population density', (end_time - start_time) / 1000);
 
         var start_time = new Date();
         this.population_peaks = [];
@@ -542,7 +542,7 @@ class Map {
             }
         }
         this.population_peaks.sort(function (a, b) { return a[2] > b[2] ? -1 : 1; });
-        this.city_center = this.population_peaks[0]
+        this.city_center = this.population_peaks[0];
         for (var i = 0; i < this.population_peaks.length; i++) {
             console.log(i);
             if (!this.on_edge(this.population_peaks[i].x, this.population_peaks.y)) {
@@ -551,7 +551,7 @@ class Map {
             }
         }
         var end_time = new Date();
-        console.log('find local maxima', (end_time - start_time) / 1000)
+        console.log('find local maxima', (end_time - start_time) / 1000);
     }
 
     get_population_density(x, y) {
@@ -662,18 +662,18 @@ class Map {
         var max_y;
         for (var i = 0; i < this.riverline.length; i++) {
             var point = this.riverline[i];
-            if (max_x == undefined || point.x > max_x) {
+            if (max_x === undefined || point.x > max_x) {
                 max_x = Math.round(point.x);
             }
-            if (min_y == undefined || point.y < min_y) {
+            if (min_y === undefined || point.y < min_y) {
                 min_y = Math.round(point.y);
             }
-            if (max_y == undefined || point.y > max_y) {
+            if (max_y === undefined || point.y > max_y) {
                 max_y = Math.round(point.y);
             }
         }
         var end_time = new Date();
-        console.log('select river midpoints', (end_time - start_time) / 1000)
+        console.log('select river midpoints', (end_time - start_time) / 1000);
 
         var start_time = new Date();
         // dig out the riverbed
@@ -690,7 +690,7 @@ class Map {
             }
         }
         var end_time = new Date();
-        console.log('dig out river', (end_time - start_time) / 1000)
+        console.log('dig out river', (end_time - start_time) / 1000);
     }
 
     graded_elevation(x, y) {
@@ -718,15 +718,15 @@ class Map {
         var min_y;
         for (var i = 0; i < this.coastline.length; i++) {
             var point = this.coastline[i];
-            if (min_x == undefined || point.x < min_x) {
+            if (min_x === undefined || point.x < min_x) {
                 min_x = Math.round(point.x);
             }
-            if (min_y == undefined || point.y < min_y) {
+            if (min_y === undefined || point.y < min_y) {
                 min_y = Math.round(point.y);
             }
         }
         var end_time = new Date();
-        console.log('set coastline', (end_time - start_time) / 1000)
+        console.log('set coastline', (end_time - start_time) / 1000);
 
         var start_time = new Date();
         // ray casting to determine which points are inside the coastline polygon
