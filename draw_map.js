@@ -89,8 +89,8 @@ class MapDraw {
             textSize(15);
             textFont('Ariel');
             fill(black);
-            strokeWeight(3);
-            stroke(lerpColor(white, black, 0.2));
+            strokeWeight(4);
+            stroke(white);
 
             var name = 'Neighborhood ' + i;
             text(name, this.data.population_peaks[i].x, this.data.population_peaks[i].y);
