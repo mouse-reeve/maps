@@ -83,7 +83,8 @@ class MapDraw {
         this.label_neighborhoods();
     }
 
-    label_neighborhoods() {
+    label_neighborhoods(labels) {
+        labels = labels || [];
         for (var i = 0; i < this.data.population_peaks.length; i++) {
             push();
             textSize(15);
@@ -92,7 +93,7 @@ class MapDraw {
             strokeWeight(4);
             stroke(white);
 
-            var name = 'Neighborhood ' + i;
+            var name = i < labels.length ? labels[i] : 'Neighborhood ' + i;
             text(name, this.data.population_peaks[i].x, this.data.population_peaks[i].y);
             pop();
         }
