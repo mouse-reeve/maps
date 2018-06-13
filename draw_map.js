@@ -89,12 +89,32 @@ class MapDraw {
             push();
             textSize(15);
             textFont('Ariel');
+            textAlign(CENTER);
             fill(black);
             strokeWeight(4);
             stroke(white);
 
+            var x = this.data.population_peaks[i].x;
+            var y = this.data.population_peaks[i].y;
+
             var name = i < labels.length ? labels[i] : 'Neighborhood ' + i;
-            text(name, this.data.population_peaks[i].x, this.data.population_peaks[i].y);
+            // check if label may be off the map
+            // estimate label length
+            var estimated_length = 4 * name.length;
+            if (x < estimated_length) {
+                x += estimated_length;
+            }
+            if (y === 0) {
+                y += 30;
+            }
+            if (x >= width - estimated_length) {
+                x -= estimated_length;
+            }
+            if (y >= height - 30) {
+                y -= 30;
+            }
+
+            text(name, x, y);
             pop();
         }
     }
