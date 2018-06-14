@@ -275,17 +275,9 @@ class MapData {
     }
 
     add_population_density() {
-        // simplex noise that is centered around a downtown peak
         var start_time = new Date();
-        var river_center = this.riverline[int(this.riverline.length / 2)];
-        var x = river_center.x;
-        var y = river_center.y;
-        while (this.is_water(x, y)) {
-            y += 1;
-        }
-        y += 20; // remove the city center enough from the river that it's out of the waterline radius
 
-        var longest = Math.sqrt(width ** 2 + height ** 2);
+        // simple simplex noise to set peaks
         for (var y = 0; y < height; y++) {
             for (var x = 0; x < width; x++) {
                 if (this.is_water(x, y)) {
@@ -298,7 +290,8 @@ class MapData {
                 var nx = x * frequency - 0.5;
                 var ny = y * frequency - 0.5;
 
-                var noise_value = this.get_noise(nx, ny);
+                var modifier = 1 - ((Math.abs(x - (width * 0.5)) / width) + ((Math.abs(y - (height * 0.5)))) / height);
+                var noise_value = this.get_noise(nx, ny) * modifier;
 
                 this.population_density[x][y] = noise_value;
             }
@@ -309,6 +302,7 @@ class MapData {
         var start_time = new Date();
         this.population_peaks = [];
         var radius = 1;
+        // find the local maxima of the noise
         for (var y = 0; y < height; y++) {
             for (var x = 0; x < width; x++) {
                 if (this.is_water(x, y)) {
