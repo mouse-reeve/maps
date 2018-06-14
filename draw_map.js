@@ -102,7 +102,7 @@ class MapDraw {
             // estimate label length
             var estimated_length = 4 * name.length;
             if (x < estimated_length) {
-                x += estimated_length;
+                x += estimated_length - x;
             }
             if (y === 0) {
                 y += 30;
