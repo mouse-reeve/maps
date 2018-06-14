@@ -186,17 +186,20 @@ class MapData {
             var y = point.y + (distance * sin(a));
             // try to make bridges
             var create_bridge = random() > 1 - (this.get_population_density(point.x, point.y) * 0.5);
-            if (this.on_map(x, y) && this.get_river(x, y) && create_bridge) {
+            if (this.get_river(x, y) && create_bridge) {
                 // maybe make a bridge
                 var bridge_length = distance;
+                var closest_river_center = this.get_best_fit(point, this.riverline, get_distance).match;
+                var bridge_theta = atan2(closest_river_center.y - point.y, closest_river_center.x - point.x);
+
                 while (this.get_river(x, y)) {
-                    x = point.x + (bridge_length * cos(a));
-                    y = point.y + (bridge_length * sin(a));
+                    x = point.x + (bridge_length * cos(bridge_theta));
+                    y = point.y + (bridge_length * sin(bridge_theta));
                     bridge_length++;
                 }
                 bridge_length += 7;
-                x = point.x + (bridge_length * cos(a));
-                y = point.y + (bridge_length * sin(a));
+                x = point.x + (bridge_length * cos(bridge_theta));
+                y = point.y + (bridge_length * sin(bridge_theta));
                 if (bridge_length < this.max_segment_length && this.validate_bridge_point([point, {x, y}])) {
                     options.push({x, y});
                 }
