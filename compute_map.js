@@ -185,7 +185,7 @@ class MapData {
             var x = point.x + (distance * cos(a));
             var y = point.y + (distance * sin(a));
             // try to make bridges
-            var create_bridge = random() > 1 - (this.get_population_density(point.x, point.y) * 0.1);
+            var create_bridge = random() > 1 - (this.get_population_density(point.x, point.y) * 0.5);
             if (this.on_map(x, y) && this.get_river(x, y) && create_bridge) {
                 // maybe make a bridge
                 var bridge_length = distance;
