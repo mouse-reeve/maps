@@ -85,7 +85,7 @@ class MapDraw {
 
     label_neighborhoods(labels) {
         labels = labels || [];
-        for (var i = 0; i < this.data.population_peaks.length; i++) {
+        for (var i = 0; i < this.data.neighborhood_centers.length; i++) {
             push();
             textSize(15);
             textFont('Ariel');
@@ -94,8 +94,8 @@ class MapDraw {
             strokeWeight(4);
             stroke(white);
 
-            var x = this.data.population_peaks[i].x;
-            var y = this.data.population_peaks[i].y;
+            var x = this.data.neighborhood_centers[i].x;
+            var y = this.data.neighborhood_centers[i].y;
 
             var name = i < labels.length ? labels[i] : 'Neighborhood ' + i;
             // check if label may be off the map

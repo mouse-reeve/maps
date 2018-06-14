@@ -55,6 +55,7 @@ class MapData {
             population_density: this.population_density,
             population_peaks: this.population_peaks,
             neighborhoods: this.neighborhoods,
+            neighborhood_centers: this.neighborhood_centers,
             roads: this.roads,
             roads_cmqtt: this.roads_cmqtt,
         };
@@ -339,12 +340,35 @@ class MapData {
 
     add_neighborhoods() {
         var start_time = new Date();
+        var centroids = [];
         for (var y = 0; y < height; y++) {
             for (var x = 0; x < width; x++) {
+                // this.ocean also includes the coastline, is_water has rivers, which we don't want here
+                if (this.ocean[x][y] && this.is_water(x, y)) {
+                    continue;
+                }
                 // find the closest neighborhood to this point
                 var match = this.get_best_fit({x, y}, this.population_peaks, get_distance);
-                this.neighborhoods[x][y] = match.index;
+                var hood_index = match.index;
+                this.neighborhoods[x][y] = hood_index;
+                // centroids for lloyd relaxation
+                if (!centroids[hood_index]) {
+                    centroids[hood_index] = {
+                        x_sum: x,
+                        y_sum: y,
+                        count: 1,
+                    };
+                } else {
+                    centroids[hood_index].x_sum += x;
+                    centroids[hood_index].y_sum += y;
+                    centroids[hood_index].count++;
+                }
             }
+        }
+        this.neighborhood_centers = [];
+        for (var i = 0; i < centroids.length; i++) {
+            var centroid = centroids[i];
+            this.neighborhood_centers.push({x: centroid.x_sum / centroid.count, y: centroid.y_sum / centroid.count});
         }
         var end_time = new Date();
         console.log('designate neighborhoods', (end_time - start_time) / 1000);
