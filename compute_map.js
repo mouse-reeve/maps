@@ -114,13 +114,9 @@ class MapData {
     add_roads() {
         var start_time = new Date();
 
-        for (var i = -1; i <= 1; i += 2) {
-            for (var j = -1; j <= 1; j += 2) {
-                var road = [this.city_center, {x: this.city_center.x + i, y: this.city_center.y + j}];
-                this.roads.push(road);
-                this.continue_road(road, this.max_segment_length);
-            }
-        }
+        var road = [this.city_center, {x: this.city_center.x + 1, y: this.city_center.y + 1}];
+        this.roads.push(road);
+        this.continue_road(road, this.max_segment_length);
 
         var end_time = new Date();
         console.log('adding roads', (end_time - start_time) / 1000);
