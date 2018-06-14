@@ -93,8 +93,7 @@ class MapData {
     }
 
     get_river(x, y) {
-        // making this a function so that it can be swapped out or used
-        // with elevation modifiers
+        // check if a point is in the river or not
         x = Math.round(x);
         y = Math.round(y);
         if (this.on_map(x, y)) {
@@ -504,7 +503,7 @@ class MapData {
                 // this starting distance is higher than the actual possible max
                 var match = this.get_best_fit({x, y}, this.riverline, get_distance);
                 this.elevation[x][y] -= 4 / ((match.distance + 0.00001) ** 1.5);
-                if (this.get_elevation(x, y) < 0) {
+                if (this.get_elevation(x, y) < 0 && !this.ocean[x][y]) {
                     this.river[x][y] = true;
                 }
             }
