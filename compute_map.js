@@ -11,7 +11,7 @@ class MapData {
         };
 
         // ----- Controls -------------\\
-        this.elevation_range = float(params.elevationrange || 0) + 1.25; // increase for a smaller elevation range
+        this.elevation_range = (float(params.elevationrange || 0) / 2) + 1.35; // increase for a smaller elevation range
         this.elevation_scale = 3; // increase for more variation in elevation across the map
         this.elevation_noisiness = 3; // increase for less smooth elevation boundaries
 
@@ -29,6 +29,7 @@ class MapData {
         this.has_river = true;
         this.riverline = [];
         this.river = this.create_matrix();
+        this.river_width = float(params.riverwidth) || 1;// should be between 0.7 and 1.2
         this.population_density = this.create_matrix();
         this.neighborhoods = this.create_matrix();
         this.population_peaks = [];
@@ -500,9 +501,11 @@ class MapData {
         min_y = radius - 150 < 0 ? 0 : radius - 150;
         for (var y = min_y; y < (max_y + radius) && y < height; y++) {
             for (var x = 0; x < (max_x + radius) && x < width; x++) {
-                // this starting distance is higher than the actual possible max
+                // find the closest point on the riverline to x,y
                 var match = this.get_best_fit({x, y}, this.riverline, get_distance);
-                this.elevation[x][y] -= 4 / ((match.distance + 0.00001) ** 1.5);
+                // lower the elvation at this point relative to the distance from the closest riverline point
+                // using elevation range keeps the width of the river proportional across maps
+                this.elevation[x][y] -= 4 / ((match.distance + 0.00001) ** (this.elevation_range * this.river_width));
                 if (this.get_elevation(x, y) < 0 && !this.ocean[x][y]) {
                     this.river[x][y] = true;
                 }
