@@ -11,7 +11,7 @@ class MapData {
         };
 
         // ----- Controls -------------\\
-        this.elevation_range = (float(params.elevationrange || 0) / 2) + 1.35; // increase for a smaller elevation range
+        this.elevation_range = 1.5; // increase for a smaller elevation range
         this.elevation_scale = 3; // increase for more variation in elevation across the map
         this.elevation_noisiness = 3; // increase for less smooth elevation boundaries
 
@@ -44,7 +44,7 @@ class MapData {
         this.add_river();
         this.add_population_density();
         this.add_neighborhoods();
-        this.add_roads();
+        //this.add_roads();
 
         return {
             elevation: this.elevation,
