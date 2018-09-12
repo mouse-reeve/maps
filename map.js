@@ -39,7 +39,7 @@ function randomize() {
     for (var i = 0; i < form_params.length; i++) {
         var min = form_params[i].getAttribute('data-min');
         var max = form_params[i].getAttribute('data-max');
-        var is_int = int(max) == float(max);
+        var is_int = int(max) == float(max) && int(min) == float(min);
         if (max && min) {
             var value = random(float(min), float(max));
             if (is_int) {

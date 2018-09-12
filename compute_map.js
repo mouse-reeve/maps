@@ -11,7 +11,7 @@ class MapData {
         };
 
         // ----- Controls -------------\\
-        this.elevation_range = 1.5; // increase for a smaller elevation range
+        this.elevation_range = float(params.elevationrange) || 1.5; // increase for a smaller elevation range
         this.elevation_scale = 3; // increase for more variation in elevation across the map
         this.elevation_noisiness = 3; // increase for less smooth elevation boundaries
 
@@ -400,7 +400,11 @@ class MapData {
     add_river() {
         // adds a river that runs from the NW corner
         var segment_length = 50;
-        var start = this.find_axis_low(0, 0, 1, height / 2);
+        if (random() > 0.3) {
+            var start = this.find_axis_low(0, 0, 'y', height / 2);
+        } else {
+            var start = this.find_axis_low(0, 0, 'x', width / 4);
+        }
         this.riverline = [start, {x: start.x + 1, y: start.y}];
 
         // use graded elevation
@@ -497,10 +501,8 @@ class MapData {
 
         var start_time = new Date();
         // dig out the riverbed
-        var radius = 150;
-        min_y = radius - 150 < 0 ? 0 : radius - 150;
-        for (var y = min_y; y < (max_y + radius) && y < height; y++) {
-            for (var x = 0; x < (max_x + radius) && x < width; x++) {
+        for (var y = 0; y < height; y++) {
+            for (var x = 0; x < width; x++) {
                 // find the closest point on the riverline to x,y
                 var match = this.get_best_fit({x, y}, this.riverline, get_distance);
                 // lower the elvation at this point relative to the distance from the closest riverline point
@@ -518,7 +520,7 @@ class MapData {
     graded_elevation(x, y) {
         // finds the elevation at a point with a gradiant applied so that the
         // NW corner is the highest
-        return this.elevation[x][y] + ((height - y) + (4 * (width - x))) / (height + width);
+        return this.elevation[x][y] + ((height - y) + (1.2 * (width - x))) / (height + width);
     }
 
     add_ocean() {
@@ -611,7 +613,10 @@ class MapData {
 
     find_axis_low(x, y, axis, range) {
         // utility function for picking lowpoints on the edges of the map
-        var low = [{x, y}, 1]; // the lowest elevation point found in range
+        var low = {
+            point: {x, y},
+            elevation: 1
+        }; // the lowest elevation point found in range
         var cp = {x, y}; // stores the current point being investigated
 
         for (var i = 0; i < range; i++) {
@@ -620,11 +625,12 @@ class MapData {
                 break;
             }
             var current_elevation = this.get_elevation(cp.x, cp.y);
-            if (current_elevation < low.y) {
-                low = [cp, current_elevation];
+            if (current_elevation < low.elevation) {
+                low.point = cp;
+                low.elevation = current_elevation;
             }
         }
-        return low[0];
+        return low.point;
     }
 
 
