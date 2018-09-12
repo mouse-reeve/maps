@@ -11,7 +11,7 @@ class MapData {
         };
 
         // ----- Controls -------------\\
-        this.elevation_range = 1.5; // increase for a smaller elevation range
+        this.elevation_range = float(params.elevationrange || 0) + 1.25; // increase for a smaller elevation range
         this.elevation_scale = 3; // increase for more variation in elevation across the map
         this.elevation_noisiness = 3; // increase for less smooth elevation boundaries
 
@@ -115,6 +115,7 @@ class MapData {
         var start_time = new Date();
 
         var road = [this.city_center, {x: this.city_center.x + 1, y: this.city_center.y + 1}];
+        this.roads = [];
         this.roads.push(road);
         this.continue_road(road, this.max_segment_length);
 
@@ -181,7 +182,7 @@ class MapData {
             var x = point.x + (distance * cos(a));
             var y = point.y + (distance * sin(a));
             // try to make bridges
-            var create_bridge = random() > 1 - (this.get_population_density(point.x, point.y) * 0.5);
+            var create_bridge = random() > (1 - (this.get_population_density(point.x, point.y) * 0.5));
             if (this.get_river(x, y) && create_bridge) {
                 // maybe make a bridge
                 var bridge_length = distance;

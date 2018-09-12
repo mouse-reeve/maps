@@ -4,6 +4,7 @@ class MapDraw {
     }
 
     draw(layer) {
+        console.log('drawing ' + layer);
         // ----- draw map ------------- \\
         if (layer.indexOf('topo') > -1) {
             this.draw_topo();
@@ -56,19 +57,10 @@ class MapDraw {
         push();
         for (var y = 0; y < height; y++) {
             for (var x = 0; x < width; x++) {
-                var point_color;
-                if (this.is_water(x, y)) {
-                    point_color = white;
-                } else {
-                    var shade = 225 / this.get_neighborhood(x, y) - 10;
-                    point_color = color(shade, shade, 255);
-                    var border_value = this.color_border(x, y, this.get_neighborhood, 1);
-                    if (!!border_value) {
-                        point_color = black;
-                    }
+                if (!this.is_water(x, y) && this.color_border(x, y, this.get_neighborhood, 1)) { 
+                    stroke(black);
+                    point(x, y);
                 }
-                stroke(point_color);
-                point(x, y);
             }
         }
         pop();
