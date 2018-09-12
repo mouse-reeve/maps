@@ -44,7 +44,7 @@ class MapData {
         this.add_river();
         this.add_population_density();
         this.add_neighborhoods();
-        //this.add_roads();
+        this.add_roads();
 
         return {
             elevation: this.elevation,
