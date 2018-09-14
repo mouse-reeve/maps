@@ -106,7 +106,7 @@ class MapDraw {
                 y -= 30;
             }
 
-            text(name, x, y);
+            //text(name, x, y);
             pop();
         }
     }
@@ -249,14 +249,13 @@ class MapDraw {
         if (colors !== undefined) {
             for (var i = 0; i < this.data.roads.length; i++) {
                 var road = this.data.roads[i];
-                var segment_length = get_distance(road[road.length - 2], road[road.length - 1]);
-                var road_width = segment_length < this.data.min_segment_length * 2 ? 2 : 3;
-                for (var j = 0; j < road.length - 1; j++) {
+                var road_width = road.length > 3 ? 3 : 2;
+                for (var j = 0; j < road.length; j++) {
                     push();
                     stroke(colors.road_shadow);
                     strokeCap(SQUARE);
                     strokeWeight(road_width + 2);
-                    line(road[j].x, road[j].y, road[j + 1].x, road[j + 1].y);
+                    line(road[j][0].x, road[j][0].y, road[j][1].x, road[j][1].y);
                     pop();
                 }
             }
@@ -266,11 +265,10 @@ class MapDraw {
                 stroke((i/this.data.roads.length) * 200);
             }
             var road = this.data.roads[i];
-            var segment_length = get_distance(road[road.length - 2], road[road.length - 1]);
-            var road_width = segment_length < this.data.min_segment_length * 2 ? 2 : 3;
+            var road_width = road.length > 3 ? 3 : 2;
             strokeWeight(road_width);
-            for (var j = 0; j < road.length - 1; j++) {
-                line(road[j].x, road[j].y, road[j + 1].x, road[j + 1].y);
+            for (var j = 0; j < road.length; j++) {
+                line(road[j][0].x, road[j][0].y, road[j][1].x, road[j][1].y);
             }
         }
         pop();

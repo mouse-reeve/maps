@@ -66,7 +66,7 @@ class MapData {
             population_peaks: this.population_peaks,
             neighborhoods: this.neighborhoods,
             neighborhood_centers: this.neighborhood_centers,
-            roads: this.roads,
+            roads: this.merged_roads,
             roads_cmqtt: this.roads_cmqtt,
         };
 
@@ -135,42 +135,65 @@ class MapData {
         var end_time = new Date();
         console.log('adding roads', (end_time - start_time) / 1000);
 
+        var start_time = new Date();
+        this.merged_roads = {};
         for (var i = 0; i < this.roads.length; i++) {
             if (this.roads[i].hasOwnProperty('id')) continue;
             this.follow_road(this.roads[i], i);
         }
+        // convert dict to array
+        this.merged_roads = Object.values(this.merged_roads);
+        var end_time = new Date();
+        console.log('merging roads', (end_time - start_time) / 1000);
     }
 
     follow_road(segment, id) {
         segment.id = id;
-        var matches = [];
+        if (!this.merged_roads[id]) this.merged_roads[id] = [segment];
+        var match = undefined;
         // find all adjoining segments
         for (var j = 0; j < this.roads.length; j++) {
-            if (!this.roads[j].hasOwnProperty('id') && this.segments_touch(segment, this.roads[j])) {
-                matches.push(this.roads[j]);
+            var touchpoint = this.segments_touch(segment, this.roads[j]);
+            if (!this.roads[j].hasOwnProperty('id') && !!touchpoint) {
+                var angle = this.get_corner_angle(touchpoint[0], touchpoint[1], touchpoint[2]);
+                if (angle > (3 * PI / 4) && angle < (5 * PI / 4)) {
+                    match = [this.roads[j], touchpoint];
+                    this.merged_roads[id].push(match[0]);
+                    break;
+                }
             }
         }
-        if (!matches.length) return;
+        if (!match) return;
 
-        var start_theta = Math.abs(this.get_theta(segment[0], segment[1]));
-        var match = undefined;
-        for (var m = 0; m < matches.length; m++) {
-            var option = matches[m];
-            var end_theta = Math.abs(this.get_theta(option[0], option[1]));
-            if (Math.abs(start_theta - end_theta) < 0.5) {
-                match = matches[m];
-                break;
-            }
-        }
-        if (match === undefined) return;
-        this.follow_road(match, 'm' + id);
+        this.follow_road(match[0], id);
+    }
+
+    get_corner_angle(p1, p2, p3) {
+        /*      p1
+        /       /|
+        /   b /  | a
+        /   /A___|
+        / p2   c  p3
+        */
+
+        var a = get_distance(p3, p1);
+        var b = get_distance(p1, p2);
+        var c = get_distance(p2, p3);
+
+        return Math.acos(((b ** 2) + (c ** 2) - (a ** 2)) / (2 * b * c));
     }
 
     segments_touch(s1, s2) {
         for (var i = 0; i < s1.length; i += s1.length - 1) {
             for (var j = 0; j < s2.length; j += s2.length - 1) {
-                if (get_distance(s1[i], s2[j]) < 3) {
-                    return true;
+                var i_offset = i == 0 ? 1 : -1;
+                var j_offset = j == 0 ? 1 : -1;
+                if (get_distance(s1[i], s2[j]) < 2) {
+                    if (i_offset == -1) {
+                        return [s1[i + i_offset], s1[i], s2[j + j_offset]];
+                    } else {
+                        return [s2[j + j_offset], s1[i], s1[i + i_offset]]
+                    }
                 }
             }
         }
@@ -225,9 +248,10 @@ class MapData {
         }
         var cmqtt_segment = new Segment(road[ultimate], next.match);
         this.roads_cmqtt.insert(cmqtt_segment);
-        road.push(next.match);
+        var new_road = [road[ultimate], next.match];
+        this.roads.push(new_road);
         if (!next.end) {
-            this.continue_road(road, segment_length, count + 1);
+            this.continue_road(new_road, segment_length, count + 1);
         }
         return road;
     }
