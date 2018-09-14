@@ -45,6 +45,7 @@ function randomize() {
             if (is_int) {
                 value = int(value);
             } else {
+                value = float(value);
                 value = Math.round(value * 100) / 100.0;
             }
             form_params[i].value = value;

@@ -16,8 +16,8 @@ class MapData {
         this.elevation_noisiness = 3; // increase for less smooth elevation boundaries
 
         // roads
-        this.snap_radius = int(params.snap || 6); // connect trailing roads to nearby roads
-        this.min_segment_length = int(params.min) || 5;
+        this.min_segment_length = int(params.min) || 10;
+        this.snap_radius = int(params.snap || this.min_segment_length * 0.95); // connect trailing roads to nearby roads
         this.max_segment_length = int(params.max) || 50;
         this.perterbation = float(params.perterbation || 0); // angle range for roads
 
@@ -177,24 +177,25 @@ class MapData {
 
     next_road_segment(point, distance, theta, perterbation) {
         // find a suitable continuation point
-
         var options = [];
+        // check an arc around the segment for an eligible point
         for (var a = theta - perterbation; a <= theta + perterbation; a += PI / 24) {
-            var x = point.x + (distance * cos(a));
-            var y = point.y + (distance * sin(a));
-            // try to make bridges
+            var x = Math.round(point.x + (distance * cos(a)));
+            var y = Math.round(point.y + (distance * sin(a)));
+
             var create_bridge = random() > (1 - (this.get_population_density(point.x, point.y) * 0.5));
+            // try to make bridges
             if (this.get_river(x, y) && create_bridge) {
-                // maybe make a bridge
                 var bridge_length = distance;
                 var closest_river_center = this.get_best_fit(point, this.riverline, get_distance).match;
                 var bridge_theta = atan2(closest_river_center.y - point.y, closest_river_center.x - point.x);
 
                 while (this.get_river(x, y)) {
-                    x = point.x + (bridge_length * cos(bridge_theta));
-                    y = point.y + (bridge_length * sin(bridge_theta));
+                    x = Math.round(point.x + (bridge_length * cos(bridge_theta)));
+                    y = Math.round(point.y + (bridge_length * sin(bridge_theta)));
                     bridge_length++;
                 }
+                // ???
                 bridge_length += 7;
                 x = point.x + (bridge_length * cos(bridge_theta));
                 y = point.y + (bridge_length * sin(bridge_theta));
@@ -215,7 +216,7 @@ class MapData {
         };
         var match = this.get_best_fit(point, options, fit_function);
 
-        // check all the roads for options within the radius
+        // check all the existing roads for options to merge within the radius
         for (var r = this.roads.length - 1; r >= 0; r--) {
             var closest = this.get_best_fit(match.match, this.roads[r], get_distance);
             if (closest.distance < this.snap_radius) {
