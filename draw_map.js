@@ -81,7 +81,7 @@ class MapDraw {
         for (var i = 0; i < this.data.neighborhood_centers.length; i++) {
             push();
             textSize(15);
-            textFont('Ariel');
+            textFont('Arial');
             textAlign(CENTER);
             fill(black);
             strokeWeight(4);
@@ -217,6 +217,8 @@ class MapDraw {
             ground: '#E8E8E8',
             road_shadow: '#E5E5E5',
             road: '#FFFFFF',
+            highway: '#FFE992',
+            highway_shadow: '#F8D264',
             park: '#C0ECAE',
             beach: '#FAF2C7',
         };
@@ -247,13 +249,15 @@ class MapDraw {
         if (colors !== undefined) {
             stroke(colors.road);
         }
+        var highway_threshold = 27;
         if (colors !== undefined) {
             for (var i = 0; i < this.data.roads.length; i++) {
                 var road = this.data.roads[i];
                 var road_width = road.length > 3 ? 3 : 2;
                 for (var j = 0; j < road.length; j++) {
                     push();
-                    stroke(colors.road_shadow);
+                    var shadow_color = road.length > highway_threshold ? colors.highway_shadow : colors.road_shadow;
+                    stroke(shadow_color);
                     strokeCap(SQUARE);
                     strokeWeight(road_width + 2);
                     line(road[j][0].x, road[j][0].y, road[j][1].x, road[j][1].y);
@@ -268,6 +272,8 @@ class MapDraw {
             }
             var road = this.data.roads[i];
             var road_width = road.length > 3 ? 3 : 2;
+            var road_color = road.length > highway_threshold ? colors.highway : colors.road;
+            stroke(road_color);
             strokeWeight(road_width);
             for (var j = 0; j < road.length; j++) {
                 line(road[j][0].x, road[j][0].y, road[j][1].x, road[j][1].y);
@@ -331,7 +337,7 @@ class MapDraw {
             push();
             //rotate(TWO_PI - theta);
             textSize(10);
-            textFont('Ariel');
+            textFont('Arial');
             textAlign(CENTER);
             fill(black);
             strokeWeight(4);
@@ -340,7 +346,7 @@ class MapDraw {
             road = road[int(road.length / 2)];
             translate(road[0].x, road[0].y);
             theta = atan2(road[1].y - road[0].y, road[1].x - road[0].x);
-            if (theta > PI/4) theta -= PI;
+            if (theta > PI/2 || theta < - 1 * HALF_PI) theta += PI;
             rotate(theta);
             var name = i < labels.length ? labels[i] : 'road ' + i;
             text(name, 0, 0);
