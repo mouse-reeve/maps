@@ -14,7 +14,7 @@ function setup() {
     for (var i = 0; i < param_string.length; i++) {
         var pair = param_string[i].split('=');
         params[pair[0]] = pair[1];
-        if (pair[1] !== undefined) {
+        if (pair[1] !== undefined && form_params[i]) {
             form_params[i].value = pair[1];
         }
     }

@@ -134,6 +134,51 @@ class MapData {
 
         var end_time = new Date();
         console.log('adding roads', (end_time - start_time) / 1000);
+
+        for (var i = 0; i < this.roads.length; i++) {
+            if (this.roads[i].hasOwnProperty('id')) continue;
+            this.follow_road(this.roads[i], i);
+        }
+    }
+
+    follow_road(segment, id) {
+        segment.id = id;
+        var matches = [];
+        // find all adjoining segments
+        for (var j = 0; j < this.roads.length; j++) {
+            if (!this.roads[j].hasOwnProperty('id') && this.segments_touch(segment, this.roads[j])) {
+                matches.push(this.roads[j]);
+            }
+        }
+        if (!matches.length) return;
+
+        var start_theta = Math.abs(this.get_theta(segment[0], segment[1]));
+        var match = undefined;
+        for (var m = 0; m < matches.length; m++) {
+            var option = matches[m];
+            var end_theta = Math.abs(this.get_theta(option[0], option[1]));
+            if (Math.abs(start_theta - end_theta) < 0.5) {
+                match = matches[m];
+                break;
+            }
+        }
+        if (match === undefined) return;
+        this.follow_road(match, 'm' + id);
+    }
+
+    segments_touch(s1, s2) {
+        for (var i = 0; i < s1.length; i += s1.length - 1) {
+            for (var j = 0; j < s2.length; j += s2.length - 1) {
+                if (get_distance(s1[i], s2[j]) < 3) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    get_theta(p1, p2) {
+        return atan2(p1.y - p2.y, p1.x - p2.x);
     }
 
     continue_road(road, segment_length, count) {
@@ -209,8 +254,8 @@ class MapData {
                 }
                 // ???
                 bridge_length += 7;
-                x = point.x + (bridge_length * cos(bridge_theta));
-                y = point.y + (bridge_length * sin(bridge_theta));
+                x = Math.round(point.x + (bridge_length * cos(bridge_theta)));
+                y = Math.round(point.y + (bridge_length * sin(bridge_theta)));
                 if (bridge_length < this.max_segment_length && this.validate_bridge_point([point, {x, y}])) {
                     options.push({x, y});
                 }
@@ -229,11 +274,25 @@ class MapData {
         var match = this.get_best_fit(point, options, fit_function);
 
         // check all the existing roads for options to merge within the radius
+        var snap_matches = [];
         for (var r = this.roads.length - 1; r >= 0; r--) {
             var closest = this.get_best_fit(match.match, this.roads[r], get_distance);
-            if (closest.distance < this.snap_radius) {
-                return {'match': closest.match, 'end': true};
+            // check every point on the road to see if it's within the snap radius and not the original point
+            for (var p = 0; p < this.roads[r].length; p++) {
+                var proposed = this.roads[r][p];
+                var segment_dist = get_distance(point, proposed); // how long the segment would be
+                var snap_dist = get_distance(match.match, proposed); // how far from the originally proposed point
+                if (snap_dist < this.snap_radius) {
+                    snap_matches.push(proposed);
+                }
             }
+        }
+        var best_snap_fit = this.get_best_fit(match.match, snap_matches, get_distance);
+        if (best_snap_fit) {
+            if (get_distance(point, best_snap_fit.match) < this.min_segment_length) {
+                return {'match': false, 'end': true};
+            }
+            return {'match': best_snap_fit.match, 'end': true};
         }
 
         return {
