@@ -216,11 +216,17 @@ class MapDraw {
             ground: '#E8E8E8',
             road_shadow: '#E5E5E5',
             road: '#FFFFFF',
+            park: '#C0ECAE',
         };
         push();
         for (var y = 0; y < height; y++) {
             for (var x = 0; x < width; x++) {
-                var point_color = this.get_elevation(x, y) < 0 ? colors.water : colors.ground;
+                var point_color = colors.ground;
+                if (this.get_elevation(x, y) < 0) {
+                    point_color = colors.water;
+                } else if (this.data.parks[x][y]) {
+                    point_color = colors.park;
+                }
                 stroke(point_color);
                 point(x, y);
             }

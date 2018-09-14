@@ -21,10 +21,14 @@ class MapData {
         this.max_segment_length = int(params.max) || 50;
         this.perterbation = float(params.perterbation || 0); // angle range for roads
 
+        // parks
+        this.park_threshold = float(params.park) || 0.08;
+
         // ----- Map components ------------\\
         this.elevation = this.create_matrix();
         this.coastline = [];
         this.ocean = this.create_matrix();
+        this.parks = this.create_matrix();
         // tracks if the river succeeds
         this.has_river = true;
         this.riverline = [];
@@ -43,6 +47,7 @@ class MapData {
         this.add_ocean();
         this.add_river();
         this.add_population_density();
+        this.add_parks();
         this.add_neighborhoods();
         this.add_roads();
 
@@ -53,6 +58,7 @@ class MapData {
             riverline: this.riverline,
             has_river: this.has_river,
             river: this.river,
+            parks: this.parks,
             population_density: this.population_density,
             population_peaks: this.population_peaks,
             neighborhoods: this.neighborhoods,
@@ -525,6 +531,20 @@ class MapData {
         // finds the elevation at a point with a gradiant applied so that the
         // NW corner is the highest
         return this.elevation[x][y] + ((height - y) + (1.2 * (width - x))) / (height + width);
+    }
+
+    add_parks() {
+        var start_time = new Date();
+        // let's just turn some mountaintops and unpopulated areas into parks
+        for (var y = 0; y < height; y++) {
+            for (var x = 0; x < width; x++) {
+                if (this.get_population_density(x, y) < this.park_threshold || this.get_elevation(x, y) > (0.2 + this.park_threshold)) {
+                    this.parks[x][y] = true;
+                }
+            }
+        }
+        var end_time = new Date();
+        console.log('add parks', (end_time - start_time) / 1000);
     }
 
     add_ocean() {
