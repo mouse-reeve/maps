@@ -217,6 +217,7 @@ class MapDraw {
             road_shadow: '#E5E5E5',
             road: '#FFFFFF',
             park: '#C0ECAE',
+            beach: '#FAF2C7',
         };
         push();
         for (var y = 0; y < height; y++) {
@@ -226,6 +227,8 @@ class MapDraw {
                     point_color = colors.water;
                 } else if (this.data.parks[x][y]) {
                     point_color = colors.park;
+                } else if (this.data.beach[x][y]) {
+                    point_color = colors.beach;
                 }
                 stroke(point_color);
                 point(x, y);

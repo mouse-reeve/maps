@@ -23,12 +23,14 @@ class MapData {
 
         // parks
         this.park_threshold = float(params.park) || 0.08;
+        this.beach_radius = float(params.beach) || 0.5;
 
         // ----- Map components ------------\\
         this.elevation = this.create_matrix();
         this.coastline = [];
         this.ocean = this.create_matrix();
         this.parks = this.create_matrix();
+        this.beach = this.create_matrix();
         // tracks if the river succeeds
         this.has_river = true;
         this.riverline = [];
@@ -59,6 +61,7 @@ class MapData {
             has_river: this.has_river,
             river: this.river,
             parks: this.parks,
+            beach: this.beach,
             population_density: this.population_density,
             population_peaks: this.population_peaks,
             neighborhoods: this.neighborhoods,
@@ -253,7 +256,7 @@ class MapData {
     validate_road_point(segment) {
         var x = segment[1].x;
         var y = segment[1].y;
-        if (this.is_water(x, y, 3) || !this.on_map(x, y) || (this.parks[x][y] && random() > 0.4)) {
+        if (this.is_water(x, y, 3) || !this.on_map(x, y) || (this.parks[x][y] && random() > 0.4) || this.beach[x][y]) {
             return false;
         }
 
@@ -535,11 +538,18 @@ class MapData {
 
     add_parks() {
         var start_time = new Date();
-        // let's just turn some mountaintops and unpopulated areas into parks
+        var beach_point = this.coastline[int(random(0, this.coastline.length))];
+        var beach_radius = this.beach_radius * width;
+        beach_point.x += beach_radius * 0.7;
+        beach_point.y += beach_radius * 0.7;
+        // let's just turn some mountaintops and unpopulated areas into parks, and toss some beaches in
         for (var y = 0; y < height; y++) {
             for (var x = 0; x < width; x++) {
                 if (this.get_population_density(x, y) < this.park_threshold || this.get_elevation(x, y) > (0.2 + this.park_threshold)) {
                     this.parks[x][y] = true;
+                }
+                if (this.ocean[x][y] && this.get_elevation(x, y) < 0.03 && get_distance({x, y}, beach_point) < beach_radius) {
+                    this.beach[x][y] = true;
                 }
             }
         }
