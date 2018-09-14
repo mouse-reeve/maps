@@ -555,7 +555,7 @@ class MapData {
 
         // follow the terrain using displaced midline algorithm
         this.coastline = this.displace_midpoint([start, end], {
-            offset_denominator: 5, offset_balance: 0.2, min_segment_length: 10});
+            offset_denominator: 5, offset_balance: 0.01, min_segment_length: 10});
 
         // add the map's SE corner to complete the polygon
         this.coastline.push({x: width-1, y: height-1});
