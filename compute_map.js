@@ -115,10 +115,13 @@ class MapData {
     add_roads() {
         var start_time = new Date();
 
-        var road = [this.city_center, {x: this.city_center.x + 1, y: this.city_center.y + 1}];
         this.roads = [];
-        this.roads.push(road);
-        this.continue_road(road, this.max_segment_length);
+        for (var i = 0; i < this.population_peaks.length; i++) {
+            var peak = this.population_peaks[i];
+            var road = [peak, {x: peak.x + 1, y: peak.y + 1}];
+            this.roads.push(road);
+            this.continue_road(road, this.max_segment_length);
+        }
 
         var end_time = new Date();
         console.log('adding roads', (end_time - start_time) / 1000);
