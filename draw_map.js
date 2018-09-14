@@ -51,13 +51,14 @@ class MapDraw {
 
         this.compass_rose();
         this.draw_scale();
+        this.label_roads();
     }
 
     draw_neighborhoods() {
         push();
         for (var y = 0; y < height; y++) {
             for (var x = 0; x < width; x++) {
-                if (!this.is_water(x, y) && this.color_border(x, y, this.get_neighborhood, 1)) { 
+                if (!this.is_water(x, y) && this.color_border(x, y, this.get_neighborhood, 1)) {
                     stroke(black);
                     point(x, y);
                 }
@@ -106,7 +107,7 @@ class MapDraw {
                 y -= 30;
             }
 
-            //text(name, x, y);
+            text(name, x, y);
             pop();
         }
     }
@@ -260,6 +261,7 @@ class MapDraw {
                 }
             }
         }
+        // this has to be in a separate loop to get the layering right
         for (var i = 0; i < this.data.roads.length; i++) {
             if (colors === undefined) {
                 stroke((i/this.data.roads.length) * 200);
@@ -316,6 +318,35 @@ class MapDraw {
             text(dist, width - offset - 5, height - 25);
         }
         pop();
+    }
+
+    label_roads(labels) {
+        // however I'm using rotate and translate just royally fucks the whole canvas
+        labels = labels || [];
+        var theta = 0;
+        for (var i = 0; i < this.data.roads.length; i++) {
+            var road = this.data.roads[i];
+            if (road.length < 20) continue;
+
+            push();
+            //rotate(TWO_PI - theta);
+            textSize(10);
+            textFont('Ariel');
+            textAlign(CENTER);
+            fill(black);
+            strokeWeight(4);
+            stroke(white);
+
+            road = road[int(road.length / 2)];
+            translate(road[0].x, road[0].y);
+            theta = atan2(road[1].y - road[0].y, road[1].x - road[0].x);
+            if (theta > PI/4) theta -= PI;
+            rotate(theta);
+            var name = i < labels.length ? labels[i] : 'road ' + i;
+            text(name, 0, 0);
+
+            pop();
+        }
     }
 
 
