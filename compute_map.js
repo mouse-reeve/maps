@@ -253,7 +253,7 @@ class MapData {
     validate_road_point(segment) {
         var x = segment[1].x;
         var y = segment[1].y;
-        if (this.is_water(x, y, 3) || !this.on_map(x, y)) {
+        if (this.is_water(x, y, 3) || !this.on_map(x, y) || (this.parks[x][y] && random() > 0.4)) {
             return false;
         }
 
