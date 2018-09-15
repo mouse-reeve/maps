@@ -1,6 +1,7 @@
 class MapDraw {
     constructor(data) {
         this.data = data;
+        this.font = font || 'Arial';
     }
 
     draw(layer) {
@@ -80,10 +81,10 @@ class MapDraw {
         labels = labels || [];
         for (var i = 0; i < this.data.neighborhood_centers.length; i++) {
             push();
-            textSize(15);
-            textFont('Arial');
+            textSize(12);
+            textFont(this.font);
             textAlign(CENTER);
-            fill(black);
+            fill('#8392A7');
             strokeWeight(4);
             stroke(white);
 
@@ -107,7 +108,7 @@ class MapDraw {
                 y -= 30;
             }
 
-            text(name, x, y);
+            text(name.toUpperCase(), x, y);
             pop();
         }
     }
@@ -221,6 +222,7 @@ class MapDraw {
             highway_shadow: '#F8D264',
             park: '#C0ECAE',
             beach: '#FAF2C7',
+            text: '#8392A7',
         };
         push();
         for (var y = 0; y < height; y++) {
@@ -228,10 +230,10 @@ class MapDraw {
                 var point_color = colors.ground;
                 if (this.get_elevation(x, y) < 0) {
                     point_color = colors.water;
-                } else if (this.data.parks[x][y]) {
-                    point_color = colors.park;
                 } else if (this.data.beach[x][y]) {
                     point_color = colors.beach;
+                } else if (this.data.parks[x][y]) {
+                    point_color = colors.park;
                 }
                 stroke(point_color);
                 point(x, y);
@@ -364,11 +366,11 @@ class MapDraw {
 
             push();
             //rotate(TWO_PI - theta);
-            textSize(10);
-            textFont('Arial');
+            textSize(8);
+            textFont(this.font);
             textAlign(CENTER);
-            fill(black);
-            strokeWeight(4);
+            fill('#737D83');
+            strokeWeight(3);
             stroke(white);
 
             road = road[int(road.length / 2)];

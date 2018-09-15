@@ -3,6 +3,11 @@ var white;
 var map;
 var drawer;
 var pins;
+var font;
+
+function preload() {
+    font = loadFont('assets/Roboto-Regular.ttf');
+}
 
 function setup() {
     var container = document.getElementById('map');
