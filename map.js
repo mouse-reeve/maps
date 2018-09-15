@@ -2,6 +2,7 @@ var black;
 var white;
 var map;
 var drawer;
+var pins;
 
 function setup() {
     var container = document.getElementById('map');
@@ -32,7 +33,35 @@ function setup() {
     drawer = new MapDraw(data);
     drawer.draw(layer);
 
+    var sample_pins = [
+        {'name': 'Restaurant',
+         'description': 'A local favorite'},
+        {'name': 'Bath house',
+         'description': 'A historical sauna'},
+    ];
+    pins = drawer.draw_pins(sample_pins);
+
     noLoop();
+}
+
+function mouseClicked() {
+    if (mouseX < 0 || mouseX > width || mouseY < 0 || mouseY > height) return;
+    // check if a pin was clicked
+    for (var i = 0; i < pins.length; i++) {
+        var pin = pins[i];
+        if ((mouseX > pin[0].x && mouseX < pin[1].x) &&
+            (mouseY > pin[1].y && mouseY < pin[0].y)) {
+            showPin(pin);
+        }
+    }
+}
+
+function showPin(pin) {
+    var modal = document.getElementById('pin');
+    modal.style.display = 'block';
+    modal.style.top = pin[1].y;
+    modal.style.left = pin[1].x;
+    document.getElementById('pin-name').innerHTML = pin.name;
 }
 
 function randomize() {

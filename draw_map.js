@@ -282,6 +282,34 @@ class MapDraw {
         pop();
     }
 
+    draw_pins(landmarks) {
+        var clickables = [];
+        // arguably placement should happen in the compute step, but I dunno when I want to feed the map cultural data
+        for (var i = 0; i < landmarks.length; i++) {
+            // pick a random location
+            var placement = this.data.roads[int(random(0, this.data.roads.length))];
+            // I'd like to extract the street id here
+            placement = placement[int(random(0, placement.length))][1];
+
+            // draw a pin
+            push();
+            fill('#f00');
+            bezier(placement.x, placement.y,
+                   placement.x + 25, placement.y - 30,
+                   placement.x - 25, placement.y - 30,
+                   placement.x, placement.y);
+            pop();
+            var pin = [
+                {x: placement.x - 20, y: placement.y},
+                {x: placement.x + 20, y: placement.y - 30}];
+            pin.id = i;
+            pin.name = landmarks[i].name;
+            clickables.push(pin);
+        }
+        return clickables;
+    }
+
+
     compass_rose() {
         // draws a simple compass rose
         push();
