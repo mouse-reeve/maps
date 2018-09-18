@@ -1,17 +1,18 @@
 var black;
 var white;
 var map;
+var data;
 var drawer;
 var pins;
 var font;
 
 function preload() {
-    font = loadFont('assets/Roboto-Regular.ttf');
+    font = 'Roboto';//loadFont('assets/Roboto-Regular.ttf');
 }
 
 function setup() {
     var container = document.getElementById('map');
-    var canvas = createCanvas(850, 400);
+    var canvas = createCanvas(1000, 500);
     canvas.parent(container);
 
     // parse URL get params
@@ -34,7 +35,7 @@ function setup() {
     white = color(255);
 
     map = new MapData(seed, params);
-    var data = map.compute_map();
+    data = map.compute_map();
     drawer = new MapDraw(data);
     drawer.draw(layer);
 
@@ -44,9 +45,55 @@ function setup() {
         {'name': 'Bath house',
          'description': 'A historical sauna'},
     ];
-    pins = drawer.draw_pins(sample_pins);
+    //pins = drawer.draw_pins(sample_pins);
 
+    //saveCanvas(canvas, seed, 'png');
     noLoop();
+}
+
+function dataExport() {
+    // specific data that unfamiliar.city wants
+    var exports = {
+        'neighborhoods': data.neighborhood_centers,
+        'road_labels': [],
+        'pins': [],
+    };
+
+    // collect label-worthy roads
+    var road_labels = [];
+    for (var i = 0; i < this.data.roads.length; i++) {
+        var road = this.data.roads[i];
+        if (road.length < 20) continue;
+
+
+        road = road[int(road.length / 2)];
+        var theta = atan2(road[1].y - road[0].y, road[1].x - road[0].x);
+        if (theta > PI/2 || theta < - 1 * HALF_PI) theta += PI;
+
+        exports.road_labels.push({
+            'theta': theta,
+            'x': road[0].x,
+            'y': road[0].y
+        })
+    }
+
+    // spots to place pins
+    for (var i = 0; i < 10; i++) {
+        // pick a random location
+        var placement = this.data.roads[int(random(0, this.data.roads.length))];
+
+        // I'd like to extract the street id here
+        placement = placement[int(random(0, placement.length))][1];
+
+        exports.pins.push({
+            'id': i,
+            'x': placement.x,
+            'y': placement.y,
+            'neighborhood': data.neighborhoods[placement.x][placement.y],
+        });
+    }
+
+    return JSON.stringify(exports);
 }
 
 function mouseClicked() {

@@ -240,8 +240,8 @@ class MapDraw {
         }
         pop();
         this.draw_roads(colors);
-        this.label_roads();
-        this.label_neighborhoods();
+        //this.label_roads();
+        //this.label_neighborhoods();
     }
 
 
