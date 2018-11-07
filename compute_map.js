@@ -46,7 +46,7 @@ class MapData {
     compute_map() {
         // ----- compute elements ----- \\
         this.add_elevation();
-        //this.add_ocean();
+        this.add_ocean();
         this.add_river();
         this.add_population_density();
         this.add_parks();
