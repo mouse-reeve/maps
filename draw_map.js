@@ -26,22 +26,23 @@ class MapDraw {
         /* Handy for debugging the coast algorithms
         push();
         noFill();
+        stroke(black);
         for (var i = 0; i < this.data.coastline.length; i++) {
-            ellipse(this.data.coastline[i][0], this.data.coastline[i][1], 5, 5);
+            ellipse(this.data.coastline[i].x, this.data.coastline[i].y, 5, 5);
         }
-        pop()
+        pop();
         */
 
         /* for debugging rivers
         push();
         for (var i = 0; i < this.data.riverline.length; i++) {
-            fill((i/this.data.riverline.length) * 255);
-            ellipse(this.data.riverline[i][0], this.data.riverline[i][1], 10, 10);
+            //fill((i/this.data.riverline.length) * 255);
+            stroke(black);
+            ellipse(this.data.riverline[i].x, this.data.riverline[i].y, 10, 10);
         }
         pop()
         */
-        // for debugging neighborhoods
-        /*
+        /* for debugging neighborhoods
         push();
         for (var i = 0; i < this.data.population_peaks.length; i++) {
             fill((i/this.data.population_peaks.length) * 255);
@@ -163,6 +164,13 @@ class MapDraw {
             topo: ['#C1CCA5', '#C1CCA5', '#E6F0BF', '#E9EFB5', '#DAC689', '#CDA37F', '#CB9082', '#C8BEC6', '#D6D5E5'],
         };
         push();
+        /*for (var y = 0; y < height; y++) {
+            for (var x = 0; x < width; x++) {
+                stroke(color(255 * this.get_elevation(x, y)));
+                point(x, y);
+            }
+        }*/
+
         for (var y = 0; y < height; y++) {
             for (var x = 0; x < width; x++) {
                 var point_color;

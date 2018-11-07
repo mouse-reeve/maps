@@ -12,7 +12,7 @@ function preload() {
 
 function setup() {
     var container = document.getElementById('map');
-    var canvas = createCanvas(1000, 500);
+    var canvas = createCanvas(1000, 600);
     canvas.parent(container);
 
     // parse URL get params
@@ -47,7 +47,7 @@ function setup() {
     ];
     //pins = drawer.draw_pins(sample_pins);
 
-    //saveCanvas(canvas, seed, 'png');
+    saveCanvas(canvas, seed, 'png');
     noLoop();
 }
 

@@ -46,7 +46,7 @@ class MapData {
     compute_map() {
         // ----- compute elements ----- \\
         this.add_elevation();
-        this.add_ocean();
+        //this.add_ocean();
         this.add_river();
         this.add_population_density();
         this.add_parks();
@@ -124,6 +124,7 @@ class MapData {
     add_roads() {
         var start_time = new Date();
 
+        random();
         this.roads = [];
         for (var i = 0; i < this.population_peaks.length; i++) {
             var peak = this.population_peaks[i];
@@ -200,10 +201,6 @@ class MapData {
         return false;
     }
 
-    get_theta(p1, p2) {
-        return atan2(p1.y - p2.y, p1.x - p2.x);
-    }
-
     continue_road(road, segment_length, count) {
         if (count === undefined) count = 1;
 
@@ -264,7 +261,7 @@ class MapData {
             var x = Math.round(point.x + (distance * cos(a)));
             var y = Math.round(point.y + (distance * sin(a)));
 
-            var create_bridge = random() > (1 - (this.get_population_density(point.x, point.y) * 0.5));
+            var create_bridge = random() > (1 - (this.get_population_density(point.x, point.y) * 0.6));
             // try to make bridges
             if (this.get_river(x, y) && create_bridge) {
                 var bridge_length = distance;
@@ -281,7 +278,9 @@ class MapData {
                 x = Math.round(point.x + (bridge_length * cos(bridge_theta)));
                 y = Math.round(point.y + (bridge_length * sin(bridge_theta)));
                 if (bridge_length < this.max_segment_length && this.validate_bridge_point([point, {x, y}])) {
-                    options.push({x, y});
+                    var bridge_option = {x, y}
+                    bridge_option.is_bridge = true;
+                    options.push(bridge_option);
                 }
             } else if (this.validate_road_point([point, {x, y}])) {
                 options.push({x, y});
@@ -298,25 +297,28 @@ class MapData {
         var match = this.get_best_fit(point, options, fit_function);
 
         // check all the existing roads for options to merge within the radius
-        var snap_matches = [];
-        for (var r = this.roads.length - 1; r >= 0; r--) {
-            var closest = this.get_best_fit(match.match, this.roads[r], get_distance);
-            // check every point on the road to see if it's within the snap radius and not the original point
-            for (var p = 0; p < this.roads[r].length; p++) {
-                var proposed = this.roads[r][p];
-                var segment_dist = get_distance(point, proposed); // how long the segment would be
-                var snap_dist = get_distance(match.match, proposed); // how far from the originally proposed point
-                if (snap_dist < this.snap_radius) {
-                    snap_matches.push(proposed);
+        if (!match.match.is_bridge) {
+            var snap_matches = [];
+            for (var r = this.roads.length - 1; r >= 0; r--) {
+                var closest = this.get_best_fit(match.match, this.roads[r], get_distance);
+                // check every point on the road to see if it's within the snap radius and not the original point
+                for (var p = 0; p < this.roads[r].length; p++) {
+                    var proposed = this.roads[r][p];
+                    var segment_dist = get_distance(point, proposed); // how long the segment would be
+                    var snap_dist = get_distance(match.match, proposed); // how far from the originally proposed point
+                    if (snap_dist < this.snap_radius) {
+                        snap_matches.push(proposed);
+                    }
                 }
             }
-        }
-        var best_snap_fit = this.get_best_fit(match.match, snap_matches, get_distance);
-        if (best_snap_fit) {
-            if (get_distance(point, best_snap_fit.match) < this.min_segment_length) {
-                return {'match': false, 'end': true};
+            var best_snap_fit = this.get_best_fit(match.match, snap_matches, get_distance);
+            if (best_snap_fit) {
+                if (get_distance(point, best_snap_fit.match) < this.min_segment_length) {
+                    return {'match': false, 'end': true};
+                }
+                return {'match': best_snap_fit.match, 'end': true};
             }
-            return {'match': best_snap_fit.match, 'end': true};
+
         }
 
         return {
@@ -328,7 +330,7 @@ class MapData {
     validate_bridge_point(segment) {
         var x = segment[1].x;
         var y = segment[1].y;
-        if (!this.on_map(x, y)) {
+        if (!this.on_map(x, y) || this.is_water(x, y)) {
             return false;
         }
 
@@ -520,7 +522,6 @@ class MapData {
             for (var a = start_angle; a < start_angle + vision_range; a += PI / 20) {
                 var sx = Math.round(this.riverline[i].x + (segment_length * cos(a)));
                 var sy = Math.round(this.riverline[i].y + (segment_length * sin(a)));
-
                 if (this.on_map(sx, sy) && this.get_elevation(sx, sy) < lowest[1]) {
                     // check for self-intersection
                     var intersecting = false;
@@ -621,17 +622,21 @@ class MapData {
 
     add_parks() {
         var start_time = new Date();
-        var beach_point = this.coastline[int(random(0, this.coastline.length))];
-        var beach_radius = this.beach_radius * width;
-        beach_point.x += beach_radius * 0.7;
-        beach_point.y += beach_radius * 0.7;
+        var has_beach = false;
+        if (this.coastline.length > 0) {
+            var beach_point = this.coastline[int(random(0, this.coastline.length))] || 0;
+            var beach_radius = this.beach_radius * width;
+            beach_point.x += beach_radius * 0.7;
+            beach_point.y += beach_radius * 0.7;
+            has_beach = true;
+        }
         // let's just turn some mountaintops and unpopulated areas into parks, and toss some beaches in
         for (var y = 0; y < height; y++) {
             for (var x = 0; x < width; x++) {
                 if (this.get_population_density(x, y) < this.park_threshold || this.get_elevation(x, y) > (0.2 + this.park_threshold)) {
                     this.parks[x][y] = true;
                 }
-                if (this.ocean[x][y] && this.get_elevation(x, y) < 0.03 && get_distance({x, y}, beach_point) < beach_radius) {
+                if (has_beach && this.ocean[x][y] && this.get_elevation(x, y) < 0.03 && get_distance({x, y}, beach_point) < beach_radius) {
                     this.beach[x][y] = true;
                 }
             }
@@ -643,7 +648,7 @@ class MapData {
     add_ocean() {
         // adds an ocean to the SE corner of the map
         var start_time = new Date();
-        var start = this.find_axis_low(width / 16, height - 1, 0, 5 * width / 8);
+        var start = this.find_axis_low(width / 20, height - 1, 0, 5 * width / 8);
         var end = this.find_axis_low(width - 1, height / 16, 1, height / 2);
 
         // follow the terrain using displaced midline algorithm
