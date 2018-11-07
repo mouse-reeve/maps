@@ -648,8 +648,8 @@ class MapData {
     add_ocean() {
         // adds an ocean to the SE corner of the map
         var start_time = new Date();
-        var start = this.find_axis_low(width / 20, height - 1, 0, 5 * width / 8);
-        var end = this.find_axis_low(width - 1, height / 16, 1, height / 2);
+        var start = this.find_axis_low(Math.round(width / 20), height - 1, 0, 5 * width / 8);
+        var end = this.find_axis_low(width - 1, Math.round(height / 16), 1, height / 2);
 
         // follow the terrain using displaced midline algorithm
         this.coastline = this.displace_midpoint([start, end], {
