@@ -660,13 +660,9 @@ class MapData {
         this.coastline.splice(0, 0, {x: width-1, y: height-1});
 
         // knowing the smallest coord means an easier elevation computation below
-        var min_x;
         var min_y;
         for (var i = 0; i < this.coastline.length; i++) {
             var point = this.coastline[i];
-            if (min_x === undefined || point.x < min_x) {
-                min_x = Math.round(point.x);
-            }
             if (min_y === undefined || point.y < min_y) {
                 min_y = Math.round(point.y);
             }
@@ -675,8 +671,8 @@ class MapData {
         console.log('set coastline', (end_time - start_time) / 1000);
 
         var start_time = new Date();
-        // ray casting to determine which points are inside the coastline polygon
         for (var y = min_y; y < height; y++) {
+            var min_x = this.get_best_fit({x: width / 2, y: y}, this.coastline, get_distance).match.x - 5;
             for (var x = min_x; x < width; x++) {
                 // this starting distance is always higher than the actual possible max
                 var distance = Math.pow(height, 2) + Math.pow(width, 2);
