@@ -47,8 +47,11 @@ function setup() {
     ];
     //pins = drawer.draw_pins(sample_pins);
 
-    saveCanvas(canvas, seed, 'png');
     noLoop();
+}
+
+function download_png() {
+    saveCanvas(canvas, data.seed, 'png');
 }
 
 function dataExport() {

@@ -38,12 +38,16 @@
         <input type="text" value="0.5" name="beach"
         data-min="0.01" data-max="1"></label><br>
     <label>Layer <input type="text" value="topo" name="layer"></label><br>
+    <label>Min segment length
+        <input type="number" value="0" name=""
+        data-min="10" data-max="25"></label><br>
     <input type="submit" value="load map">
     <span onclick="randomize()">randomize</span>
 </form>
+<span onclick="download_png()">download png</span><br>
 <span onclick="drawer.draw('hoods')">show neighborhoods</span><br>
 <span onclick="drawer.draw('urban')">show urban</span><br>
-<span onclick="map.add_roads()">re-calculate roads</span>
+<span onclick="map.add_roads()">re-calculate roads</span><br>
 
 </body>
 </html>
